@@ -615,7 +615,7 @@ class SMPLifyLoss(nn.Module):
             valid_contact_ids = valid_contact_mask.squeeze().nonzero().squeeze()
 
             contact_dist = self.contact_robustifier(contact_dist[:, valid_contact_ids].sqrt())
-            contact_loss = self.contact_loss_weight * contact_dist.mean()
+            contact_loss = self.contact_loss_weight * contact_dist.sum()
 
         total_loss = (joint_loss + pprior_loss + shape_loss +
                       angle_prior_loss + pen_loss +

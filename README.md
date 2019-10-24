@@ -21,7 +21,7 @@ terminate your rights under this [License](./LICENSE)
 This repository contains the fitting code used for the experiments in [ Resolving 3D Human Pose Ambiguities with 3D Scene Constraints](https://prox.is.tue.mpg.de).
 
 # PROX Dataset
-To run the fitting code, you would need to downlaod and extract at least one of the [[PROX datasets](https://prox.is.tue.mpg.de/)]. The webpage provides the 2 PROX datasets:
+To run the fitting code, you would need to downlaod and extract at least one of the [PROX datasets](https://prox.is.tue.mpg.de/). The webpage provides the 2 PROX datasets:
 - `Quantitative PROX dataset`: Dataset of 180 static RGB-D frames with Ground Truth.
 The dataset captures static RGB-D frames of 1 subject in 1 scene and is described in Section 4.2 of the PROX paper.
 
@@ -46,11 +46,11 @@ The content of each folder is explained below:
 - `calibration` contains the calibration information of the Color and IR cameras of the Kinect-One sensor.
 - `cam2world` contains the camera-to-world transformation matrices to spatially align the camera to the 3D scene scans.
 - `fittings` contains SMPL-X fittings parameters.
-- `keypoints` contains 2D keypoints in json files computed from [[openpose](https://github.com/CMU-Perceptual-Computing-Lab/openpose)].
-- `keypoints_overlay` contains 2D keypoints overlayed on the RGB images as generatd by [[openpose](https://github.com/CMU-Perceptual-Computing-Lab/openpose)].
+- `keypoints` contains 2D keypoints in json files computed from [openpose](https://github.com/CMU-Perceptual-Computing-Lab/openpose).
+- `keypoints_overlay` contains 2D keypoints overlayed on the RGB images as generatd by [openpose](https://github.com/CMU-Perceptual-Computing-Lab/openpose).
 - `scenes` 3D scene meshes.
 - `sdf` Signed Distance Field of the 3D scenes.
-# Recordings Documentation
+## Recordings Documentation
 `recordings` contains the raw RGB-D recordings. The prox dataset come with 60 recordings, each recording folder name has the format of `SceneName_SubjectID_SequenceID`.
 Each recording folder includes the following sub_folders:
 ```bash
@@ -62,14 +62,21 @@ SceneName_SubjectID_SequenceID
 └── Skeleton
 ```
 `BodyIndex`: Human masks computed by Kinect-One SDK (png, 512x424 px).
+`BodyIndexColor`: Human masks computed by running [DeepLabV3](https://pytorch.org/hub/pytorch_vision_deeplabv3_resnet101/) on the color fames. (png, 1920x1080 px).
 `Color`: RGB frames (jpg, 1920x1080 px).
 `Depth`: Depth frames (png, 512x424 px, ToF camera).
 `Infrared`: Infrared images (png, 512x424 px).
 `Skeleton`: Body skeletons captured by Kinect-One SDK (json).
 
+### Visualization
 You can visualize the raw data by running the script:
 ```Shell
 python prox/viz/viz_raw_data.py RECORDING_DIR --show_color 1 --show_body_only 1
+```
+### Color and Depth alignment
+The color and depth frame of the kinect are not spatially aligned and they don't have the same resolution. To project one frame to another, you can use the follwing command:
+```Shell
+python prox/align_RGBD.py RECORDING_DIR --mode "depth2color/color2depth"
 ```
 ## Quantitative PROX dataset
 The Quantitative PROX dataset has the same structure as explained above in additon to one file `vicon2scene.json`  which contains transformation matrix
@@ -87,7 +94,7 @@ python prox/viz/viz_mosh.py ~/prox_dataset/quantitative/fittings/mosh/vicon_0330
 ```
 
 ### Fitting
-You would first need to need to downlaod and extract the [[PROX dataset](https://prox.is.tue.mpg.de/)] as explained in the previous section. Then run the following command to execute the code:
+To run the method you would first need to need to download and extract the [PROX dataset](https://prox.is.tue.mpg.de/) as explained in the previous section. Then run the following command to execute the code:
 ```Shell
 python prox/main.py --config cfg_files/CONF.yaml
     --recording_dir RECORDING_DIR
@@ -114,7 +121,16 @@ You can also visualize the results in 3D by running the following script:
 prox/viz/viz_fitting.py FITTING_DIR --base_dir BASE_DIR --model_folder ~/prox_dataset/models --gender GENDER
 ```
 where the FITTING_DIR is a directory that contains the `SMPL-X` pkl parameters.
-
+## PROXD Fittings
+We provide PROXD fittings for the dataset on the [PROX dataset](https://prox.is.tue.mpg.de/) as well as preview videos. We provide the fittings as `.pkl` files which contains the `SMPL-X` parameters. For more details on `SMPL-X` parametrization and formulation, check this repository [SMPL-X](https://github.com/vchoutas/smplx).
+ Similarly; you can visualize the results in 3D by running the following script:
+```Shell
+prox/viz/viz_fitting.py FITTING_DIR --base_dir BASE_DIR --model_folder MODEL_FOLDER
+```
+You can also create meshes from the `.pkl` files and render the results using:
+```Shell
+prox/renderer.pkl FITTING_DIR --base_dir BASE_DIR --model_folder MODEL_FOLDER
+```
 ## Dependencies
 Install requirements:
 ```Shell
@@ -149,7 +165,7 @@ If you find this Model & Software useful in your research we would kindly ask yo
 
 ## Acknowledgments
 
-The code is based on the [SMPLify-X](https://github.com/vchoutas/smplify-x) code. The Chamfer Distance code is taken from [3d-CODED](https://github.com/ThibaultGROUEIX/3D-CODED).
+The code is based on the [SMPLify-X](https://github.com/vchoutas/smplify-x) code. The Chamfer Distance code is taken from [3d-CODED](https://github.com/ThibaultGROUEIX/3D-CODED). We thank [Jean-Claude Passy](https://github.com/jcpassyD) for managing the [Mesh Packages](https://github.com/MPI-IS/mesh) and porting it to Python 3 and .
 
 ## Contact
 For questions, please contact [prox@tue.mpg.de](mailto:prox@tue.mpg.de).

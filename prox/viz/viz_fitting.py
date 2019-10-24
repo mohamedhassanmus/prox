@@ -21,6 +21,13 @@ def main(args):
     recording_dir = osp.join(base_dir, 'recordings', recording_name)
     color_dir = os.path.join(recording_dir, 'Color')
 
+    female_subjects_ids = [162, 3452, 159, 3403]
+    subject_id = int(recording_name.split('_')[1])
+    if subject_id in female_subjects_ids:
+        gender = 'female'
+    else:
+        gender = 'male'
+
     cv2.namedWindow('frame', cv2.WINDOW_NORMAL)
 
     vis = o3d.Visualizer()
@@ -33,7 +40,7 @@ def main(args):
 
 
     model = smplx.create(args.model_folder, model_type='smplx',
-                         gender=args.gender, ext='npz',
+                         gender=gender, ext='npz',
                          num_pca_comps=args.num_pca_comps,
                          create_global_orient=True,
                          create_body_pose=True,
@@ -75,6 +82,7 @@ def main(args):
 
 
         color_img = cv2.imread(os.path.join(color_dir, img_name + '.jpg'))
+        color_img = cv2.flip(color_img, 1)
 
         vis.update_geometry()
         while True:

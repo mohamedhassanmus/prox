@@ -25,7 +25,7 @@ import argparse
 from prox.projection_utils import Projection
 
 def main(args):
-    recording_name = osp.basename(args.recording_dir)
+    recording_name = osp.abspath(osp.basename(args.recording_dir))
     scene_name = recording_name.split("_")[0]
     base_dir = os.path.abspath(osp.join(args.recording_dir, os.pardir, os.pardir))
     cam2world_dir = osp.join(base_dir, 'cam2world')
