@@ -166,7 +166,7 @@ If you find this Model & Software useful in your research we would kindly ask yo
 
 ## Acknowledgments
 
-The code is based on the [SMPLify-X](https://github.com/vchoutas/smplify-x) code. The Chamfer Distance code is taken from [3d-CODED](https://github.com/ThibaultGROUEIX/3D-CODED). We thank [Jean-Claude Passy](https://github.com/jcpassyD) for managing the [Mesh Packages](https://github.com/MPI-IS/mesh) and porting it to Python 3 and .
+The code is based on the [SMPLify-X](https://github.com/vchoutas/smplify-x) code. The Chamfer Distance code is taken from [3d-CODED](https://github.com/ThibaultGROUEIX/3D-CODED). We thank [Jean-Claude Passy](https://github.com/jcpassy) for managing the [Mesh Packages](https://github.com/MPI-IS/mesh) and porting it to Python 3 and .
 
 ## Contact
 For questions, please contact [prox@tue.mpg.de](mailto:prox@tue.mpg.de).
