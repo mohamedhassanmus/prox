@@ -22,7 +22,7 @@ import argparse
 from prox.projection_utils import Projection
 
 def main(args):
-    recording_name = osp.abspath(osp.basename(args.recording_dir))
+    recording_name = osp.basename(args.recording_dir)
     color_dir = os.path.join(args.recording_dir, 'Color')
     depth_dir = os.path.join(args.recording_dir,'Depth')
     scene_name = recording_name.split("_")[0]
