@@ -76,8 +76,9 @@ python prox/viz/viz_raw_data.py RECORDING_DIR --show_color 1 --show_body_only 1
 ### Color and Depth alignment
 The color and depth frame of the kinect are not spatially aligned and they don't have the same resolution. To project one frame to another, you can use the follwing command:
 ```Shell
-python prox/align_RGBD.py RECORDING_DIR --mode "depth2color/color2depth"
+python prox/align_RGBD.py RECORDING_DIR --mode MODE
 ```
+where mode can be `depth2color` or `color2depth`.
 ## Quantitative PROX dataset
 The Quantitative PROX dataset has the same structure as explained above in additon to one file `vicon2scene.json`  which contains transformation matrix
  from Vicon coordintates system to the 3D scene coordintates system. The `fitting` folder of the quantitative dataset contains `SMPL-X` fittings computed using
@@ -93,7 +94,7 @@ python prox/viz/viz_mosh.py ~/prox_dataset/quantitative/fittings/mosh/vicon_0330
 --base_dir  ~/prox_dataset/quantitative --model_folder ~/prox_dataset/models/ --gender male
 ```
 
-### Fitting
+# Fitting
 To run the method you would first need to need to download and extract the [PROX dataset](https://prox.is.tue.mpg.de/) as explained in the previous section. Then run the following command to execute the code:
 ```Shell
 python prox/main.py --config cfg_files/CONF.yaml
@@ -122,7 +123,7 @@ prox/viz/viz_fitting.py FITTING_DIR --base_dir BASE_DIR --model_folder ~/prox_da
 ```
 where the FITTING_DIR is a directory that contains the `SMPL-X` pkl parameters.
 ## PROXD Fittings
-We provide PROXD fittings for the dataset on the [PROX dataset](https://prox.is.tue.mpg.de/) as well as preview videos. We provide the fittings as `.pkl` files which contains the `SMPL-X` parameters. For more details on `SMPL-X` parametrization and formulation, check this repository [SMPL-X](https://github.com/vchoutas/smplx).
+We provide PROXD fittings for the dataset on the [website](https://prox.is.tue.mpg.de/) as well as preview videos. We provide the fittings as `.pkl` files which contains the `SMPL-X` parameters. For more details on `SMPL-X` parameterization and formulation, check this repository [SMPL-X](https://github.com/vchoutas/smplx).
  Similarly; you can visualize the results in 3D by running the following script:
 ```Shell
 prox/viz/viz_fitting.py FITTING_DIR --base_dir BASE_DIR --model_folder MODEL_FOLDER
