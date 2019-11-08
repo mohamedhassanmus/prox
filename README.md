@@ -5,6 +5,15 @@
 
 ![PROX Examples](./images/teaser.jpg)
 
+## Note
+The released version of PROX code depends on the released versions of [SMPLify-X](https://github.com/vchoutas/smplify-x) and [Vposer](https://github.com/nghorbani/human_body_prior) on github.  We just realized that these versions differ from our internal versions and that, consequently, the released version of PROX produces results which differ from the results reported in the paper.
+
+We would like to inform you about this finding.  After the CVPR deadline, we will release our reference code that reproduces the paper results.  
+
+We apologize for the confusion and will work on resolving this.
+
+
+
 ## License
 
 Software Copyright License for **non-commercial scientific research purposes**.
