@@ -86,7 +86,7 @@ class SMPLifyAnglePrior(nn.Module):
         '''
         angle_prior_idxs = self.angle_prior_idxs - (not with_global_pose) * 3
         return torch.exp(pose[:, angle_prior_idxs] *
-                         self.angle_prior_signs).pow(2)
+                         self.angle_prior_signs)#.pow(2)
 
 
 class L2Prior(nn.Module):
