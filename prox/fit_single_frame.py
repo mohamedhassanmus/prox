@@ -458,10 +458,6 @@ def fit_single_frame(img,
 
         H, W, _ = img.shape
 
-        data_weight = 1000 / H
-        # The closure passed to the optimizer
-        camera_loss.reset_loss_weights({'data_weight': data_weight})
-
         # Reset the parameters to estimate the initial translation of the
         # body model
         if camera_mode == 'moving':
@@ -573,7 +569,6 @@ def fit_single_frame(img,
                     **kwargs)
                 body_optimizer.zero_grad()
 
-                curr_weights['data_weight'] = data_weight
                 curr_weights['bending_prior_weight'] = (
                     3.17 * curr_weights['body_pose_weight'])
                 if use_hands:
