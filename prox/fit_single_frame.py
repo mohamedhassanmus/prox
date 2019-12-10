@@ -134,6 +134,8 @@ def fit_single_frame(img,
                      scene_dir=None,
                      **kwargs):
     assert batch_size == 1, 'PyTorch L-BFGS only supports batch_size == 1'
+    body_model.reset_params()
+    body_model.transl.requires_grad = True
 
     device = torch.device('cuda') if use_cuda else torch.device('cpu')
 
