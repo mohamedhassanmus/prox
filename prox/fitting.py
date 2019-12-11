@@ -72,8 +72,8 @@ def guess_init(model,
 
     '''
 
-    body_pose = vposer.decode(
-        pose_embedding, output_type='aa').view(1, -1) if use_vposer else None
+    body_pose = vposer.forward(
+        pose_embedding).view(1, -1) if use_vposer else None
     if use_vposer and model_type == 'smpl':
         wrist_pose = torch.zeros([body_pose.shape[0], 6],
                                  dtype=body_pose.dtype,
@@ -226,8 +226,7 @@ class FittingMonitor(object):
             if backward:
                 optimizer.zero_grad()
 
-            body_pose = vposer.decode(
-                pose_embedding, output_type='aa').view(
+            body_pose = vposer.forward(pose_embedding).view(
                     1, -1) if use_vposer else None
 
             if append_wrists:

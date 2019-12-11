@@ -43,7 +43,7 @@ import json
 from optimizers import optim_factory
 
 import fitting
-from human_body_prior.tools.model_loader import load_vposer
+from vposer import VPoserDecoder
 from psbody.mesh import Mesh
 import scipy.sparse as sparse
 
@@ -224,14 +224,15 @@ def fit_single_frame(img,
                                      dtype=dtype, device=device,
                                      requires_grad=True)
 
-        vposer_ckpt = osp.expandvars(vposer_ckpt)
-        vposer, _ = load_vposer(vposer_ckpt, vp_model='snapshot')
+        vposer = VPoserDecoder(vposer_ckpt=vposer_ckpt, latent_dim=vposer_latent_dim,
+                               dtype=dtype, **kwargs)
         vposer = vposer.to(device=device)
         vposer.eval()
 
     if use_vposer:
-        body_mean_pose = torch.zeros([batch_size, vposer_latent_dim],
-                                     dtype=dtype)
+        latent_mean = torch.zeros([batch_size, vposer_latent_dim],device=device,
+        requires_grad=True, dtype=dtype)
+        body_mean_pose = vposer(latent_mean).detach().cpu()
     else:
         body_mean_pose = body_pose_prior.get_mean().detach().cpu()
 
@@ -629,9 +630,7 @@ def fit_single_frame(img,
                            for key, val in body_model.named_parameters()})
             if use_vposer:
                 result['pose_embedding'] = pose_embedding.detach().cpu().numpy()
-                body_pose = vposer.decode(
-                    pose_embedding,
-                    output_type='aa').view(1, -1) if use_vposer else None
+                body_pose = vposer.forward(pose_embedding).view(1, -1) if use_vposer else None
                 result['body_pose'] = body_pose.detach().cpu().numpy()
 
             results.append({'loss': final_loss_val,
@@ -647,9 +646,7 @@ def fit_single_frame(img,
 
 
     if save_meshes or visualize:
-        body_pose = vposer.decode(
-            pose_embedding,
-            output_type='aa').view(1, -1) if use_vposer else None
+        body_pose = vposer.forward(pose_embedding).view(1, -1) if use_vposer else None
 
         model_type = kwargs.get('model_type', 'smpl')
         append_wrists = model_type == 'smpl' and use_vposer
