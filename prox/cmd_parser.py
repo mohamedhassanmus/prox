@@ -309,7 +309,7 @@ def parse_config(argv=None):
                         default=True,
                         help='render final results')
     parser.add_argument('--trans_opt_stages',
-                        default=[2,3,4], type=int,
+                        default=[3,4], type=int,
                         nargs='*',
                         help='stages where translation will be optimized')
     parser.add_argument('--viz_mode', default='o3d', type=str,
