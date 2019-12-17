@@ -5,14 +5,6 @@
 
 ![PROX Examples](./images/teaser.jpg)
 
-## Note
-The released version of PROX code depends on the released versions of [SMPLify-X](https://github.com/vchoutas/smplify-x) and [Vposer](https://github.com/nghorbani/human_body_prior) on github.  We just realized that these versions differ from our internal versions and that, consequently, the released version of PROX produces results which differ from the results reported in the paper.
-
-We would like to inform you about this finding.  After the CVPR deadline, we will release our reference code that reproduces the paper results.  
-
-We apologize for the confusion and will work on resolving this.
-
-
 
 ## License
 
@@ -140,6 +132,24 @@ prox/viz/viz_fitting.py FITTING_DIR --base_dir BASE_DIR --model_folder MODEL_FOL
 You can also create meshes from the `.pkl` files and render the results using:
 ```Shell
 prox/renderer.pkl FITTING_DIR --base_dir BASE_DIR --model_folder MODEL_FOLDER
+```
+
+## Note
+The master branch of this repository depends on the released versions of [SMPLify-X](https://github.com/vchoutas/smplify-x) and [Vposer](https://github.com/nghorbani/human_body_prior) on github.  These versions differ from our internal versions and hence the produced results might differ form what is reported in the paper.
+We provide another branch `internal_vposer` which has a reimplemnetation of the internal human_body_prior. If you want to replicated the results reported in Table 1 in the paper; then please checkout this version by:
+```Shell
+git checkout internal_vposer
+```
+Then download the vPoser Weights from our [website](https://prox.is.tue.mpg.de/) and use it for fitting:
+
+```Shell
+python prox/main.py --config cfg_files/CONF.yaml
+    --recording_dir RECORDING_DIR
+    --vposer_ckpt ~/vposerDecoderWeights.npz
+    --output_folder OUTPUT_FOLDER
+    --visualize="True/False"
+    --model_folder MODEL_FOLDER
+    --part_segm_fn smplx_parts_segm.pkl
 ```
 ## Dependencies
 Install requirements:
