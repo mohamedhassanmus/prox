@@ -252,6 +252,7 @@ def fit_single_frame(img,
 
     # load pre-computed signed distance field
     sdf = None
+    sdf_normals = None
     grid_min = None
     grid_max = None
     voxel_size = None
@@ -264,6 +265,8 @@ def fit_single_frame(img,
         voxel_size = (grid_max - grid_min) / grid_dim
         sdf = np.load(osp.join(sdf_dir, scene_name + '_sdf.npy')).reshape(grid_dim, grid_dim, grid_dim)
         sdf = torch.tensor(sdf, dtype=dtype, device=device)
+        sdf_normals = np.load(osp.join(sdf_dir, scene_name + '_normals.npy')).reshape(grid_dim, grid_dim, grid_dim, 3)
+        sdf_normals = torch.tensor(sdf_normals, dtype=dtype, device=device)
 
 
     with open(os.path.join(cam2world_dir, scene_name + '.json'), 'r') as f:
@@ -344,6 +347,7 @@ def fit_single_frame(img,
             scene_f = torch.tensor(scene.f.astype(int)[np.newaxis, :],
                                    dtype=torch.long,
                                    device=device)
+
 
     # Weights used for the pose prior and the shape prior
     opt_weights_dict = {'data_weight': data_weights,
@@ -444,6 +448,7 @@ def fit_single_frame(img,
                                grid_min=grid_min,
                                grid_max=grid_max,
                                sdf=sdf,
+                               sdf_normals=sdf_normals,
                                R=R,
                                t=t,
                                contact=contact,

@@ -178,7 +178,7 @@ def parse_config(argv=None):
                         type=float,
                         help='Value of constant of robust loss')
     parser.add_argument('--interpenetration',
-                        default=False,
+                        default=True,
                         type=lambda x: x.lower() in ['true', '1'],
                         help='Whether to use the interpenetration term')
     parser.add_argument('--penalize_outside',

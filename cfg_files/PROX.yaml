@@ -1,21 +1,26 @@
-focal_length_x: 1060.53
-focal_length_y: 1060.38
-camera_center_x: 951.30
-camera_center_y: 536.77
+output_folder: '~/PROX'
+model_folder: 'models'
+vposer_ckpt: "models/vposer_v1_0/"
+part_segm_fn: "models/smplx_parts_segm.pkl"
+
+focal_length_x: 1060.5317
+focal_length_y: 1060.3856
+camera_center_x: 951.2999
+camera_center_y: 536.7704
 flip: True
 camera_mode: 'fixed'
-output_folder: '/tmp/PROX'
 ###################
 contact: True
 contact_angle: 45
-rho_contact: 5e-1
+rho_contact: 5e-2
 contact_loss_weights:
     - 0.0
     - 0.0
     - 0.0
     - 0.0
-    - 1.0
-    - 1e1
+    - 0.0
+    - 0.0
+    - 1e4
 load_scene: True
 ###################
 sdf_penetration: True
@@ -24,14 +29,15 @@ sdf_penetration_weights:
     - 0.0
     - 0.0
     - 0.0
+    - 0.0
+    - 1e2
     - 1.0
-    - 1e1
 
 trans_opt_stages:
-    - 2
     - 3
     - 4
     - 5
+    - 6
 
 shape_weights:
     - 1.0e2
@@ -40,7 +46,10 @@ shape_weights:
     - 0.5e1
     - 0.5e1
     - 0.5e1
+    - 0.5e1
+
 data_weights:
+    - 1
     - 1
     - 1
     - 1
@@ -55,7 +64,6 @@ joints_to_ign:
     - 9
     - 12
 prior_folder: 'priors'
-model_folder: 'models'
 result_folder: 'results'
 gender: "male"
 model_type: 'smplx'
@@ -100,13 +108,15 @@ body_pose_prior_weights:
     - 4.78e0
     - 4.78e0
     - 4.78e0
+    - 4.78e0
 coll_loss_weights:
     - 0.0
     - 0.0
     - 0.0
     - 0.01
-    - 1.0
-    - 1.0
+    - 0.1
+    - 0.0
+    - 0.0
 expr_weights:
     - 1.0e2
     - 5.0e1
@@ -114,10 +124,12 @@ expr_weights:
     - 0.5e1
     - 0.5e1
     - 0.5e1
+    - 0.5e1
 hand_pose_prior_weights:
     - 4.04e2
     - 4.04e2
     - 57.4
+    - 4.78
     - 4.78
     - 4.78
     - 4.78
@@ -134,11 +146,14 @@ jaw_pose_prior_weights:
     - 47.8,478,478
     # Sixth phase
     - 47.8,478,478
+    # Seventh phase
+    - 47.8,478,478
 hand_joints_weights:
     - 0.0
     - 0.0
     - 0.0
     - 0.1
+    - 2.0
     - 2.0
     - 2.0
 face_joints_weights:
@@ -148,7 +163,6 @@ face_joints_weights:
     - 0.0
     - 2.0
     - 2.0
+    - 2.0
 
 use_vposer: True
-vposer_ckpt: "models/vposer_v1_0/"
-part_segm_fn: "models/smplx_parts_segm.pkl"
