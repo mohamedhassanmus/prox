@@ -135,7 +135,7 @@ prox/renderer.pkl FITTING_DIR --base_dir BASE_DIR --model_folder MODEL_FOLDER
 ```
 
 ## Note
-The master branch of this repository depends on the released versions of [SMPLify-X](https://github.com/vchoutas/smplify-x) and [Vposer](https://github.com/nghorbani/human_body_prior) on github.  These versions differ from our internal versions and hence the produced results might differ form what is reported in the paper.
+The master branch of this repository depends on the released versions of [SMPLify-X](https://github.com/vchoutas/smplify-x) and [Vposer](https://github.com/nghorbani/human_body_prior) on github.  These versions differ from our internal versions and hence the produced results might differ from what is reported in the paper.
 We provide another branch `internal_vposer` which has a reimplemnetation of the internal human_body_prior. If you want to replicated the results reported in Table 1 in the paper; then please checkout this version by:
 ```Shell
 git checkout internal_vposer
