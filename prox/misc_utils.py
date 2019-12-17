@@ -71,6 +71,18 @@ class GMoF(nn.Module):
         dist = torch.div(squared_res, squared_res + self.rho ** 2)
         return self.rho ** 2 * dist
 
+class GMoF_unscaled(nn.Module):
+    def __init__(self, rho=1):
+        super(GMoF_unscaled, self).__init__()
+        self.rho = rho
+
+    def extra_repr(self):
+        return 'rho = {}'.format(self.rho)
+
+    def forward(self, residual):
+        squared_res = residual ** 2
+        dist = torch.div(squared_res, squared_res + self.rho ** 2)
+        return dist
 
 def smpl_to_openpose(model_type='smplx', use_hands=True, use_face=True,
                      use_face_contour=False, openpose_format='coco25'):
@@ -182,4 +194,3 @@ def smpl_to_openpose(model_type='smplx', use_hands=True, use_face=True,
             raise ValueError('Unknown model type: {}'.format(model_type))
     else:
         raise ValueError('Unknown joint format: {}'.format(openpose_format))
-

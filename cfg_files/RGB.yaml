@@ -1,10 +1,14 @@
-focal_length_x: 1060.53
-focal_length_y: 1060.38
-camera_center_x: 951.30
-camera_center_y: 536.77
+output_folder: '~/RGB'
+model_folder: 'models'
+vposer_ckpt: "models/vposer_v1_0/"
+part_segm_fn: "models/smplx_parts_segm.pkl"
+
+focal_length_x: 1060.5317
+focal_length_y: 1060.3856
+camera_center_x: 951.2999
+camera_center_y: 536.7704
 flip: True
 camera_mode: 'fixed'
-output_folder: '/tmp/RGB'
 ###################
 shape_weights:
     - 1.0e2
@@ -27,7 +31,6 @@ joints_to_ign:
     - 9
     - 12
 prior_folder: 'priors'
-model_folder: 'models'
 result_folder: 'results'
 gender: "male"
 model_type: 'smplx'
@@ -106,7 +109,6 @@ hand_joints_weights:
     - 0.0
     - 0.1
     - 2.0
-    - 2.0
 face_joints_weights:
     - 0.0
     - 0.0
@@ -114,5 +116,3 @@ face_joints_weights:
     - 0.0
     - 2.0
 use_vposer: True
-vposer_ckpt: "models/vposer_v1_0/"
-part_segm_fn: "models/smplx_parts_segm.pkl"
