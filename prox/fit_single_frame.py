@@ -264,8 +264,11 @@ def fit_single_frame(img,
         voxel_size = (grid_max - grid_min) / grid_dim
         sdf = np.load(osp.join(sdf_dir, scene_name + '_sdf.npy')).reshape(grid_dim, grid_dim, grid_dim)
         sdf = torch.tensor(sdf, dtype=dtype, device=device)
-        sdf_normals = np.load(osp.join(sdf_dir, scene_name + '_normals.npy')).reshape(grid_dim, grid_dim, grid_dim, 3)
-        sdf_normals = torch.tensor(sdf_normals, dtype=dtype, device=device)
+        if osp.exists(osp.join(sdf_dir, scene_name + '_normals.npy')):
+            sdf_normals = np.load(osp.join(sdf_dir, scene_name + '_normals.npy')).reshape(grid_dim, grid_dim, grid_dim, 3)
+            sdf_normals = torch.tensor(sdf_normals, dtype=dtype, device=device)
+        else:
+            print("Normals not found...")
 
 
     with open(os.path.join(cam2world_dir, scene_name + '.json'), 'r') as f:
