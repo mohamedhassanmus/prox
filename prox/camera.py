@@ -94,24 +94,36 @@ class PerspectiveCamera(nn.Module):
         device = points.device
 
         with torch.no_grad():
-            camera_mat = torch.zeros([self.batch_size, 2, 2],
-                                     dtype=self.dtype, device=points.device)
+            camera_mat = torch.zeros([self.batch_size, 2, 2], dtype=self.dtype, device=points.device)
             camera_mat[:, 0, 0] = self.focal_length_x
-            camera_mat[:, 1, 1] = self.focal_length_y
+            camera_mat[:, 1, 1] = self.focal_length_y   # Make a 2x2 matrix with focal length on diagonal
 
-        camera_transform = transform_mat(self.rotation,
-                                         self.translation.unsqueeze(dim=-1))
-        homog_coord = torch.ones(list(points.shape)[:-1] + [1],
-                                 dtype=points.dtype,
-                                 device=device)
-        # Convert the points to homogeneous coordinates
+        camera_transform = transform_mat(self.rotation, self.translation.unsqueeze(dim=-1))     # Make 4x4 rigid tform matrix
+        homog_coord = torch.ones(list(points.shape)[:-1] + [1], dtype=points.dtype, device=device)  # Make the query points homogeneous
         points_h = torch.cat([points, homog_coord], dim=-1)
 
-        projected_points = torch.einsum('bki,bji->bjk',
-                                        [camera_transform, points_h])
+        projected_points = torch.einsum('bki,bji->bjk',  [camera_transform, points_h])  # Apply rigid transform
 
-        img_points = torch.div(projected_points[:, :, :2],
-                               projected_points[:, :, 2].unsqueeze(dim=-1))
-        img_points = torch.einsum('bki,bji->bjk', [camera_mat, img_points]) \
-            + self.center.unsqueeze(dim=1)
+        img_points = torch.div(projected_points[:, :, :2], projected_points[:, :, 2].unsqueeze(dim=-1))     # Remove 1s and divide by Z
+        img_points = torch.einsum('bki,bji->bjk', [camera_mat, img_points]) + self.center.unsqueeze(dim=1)  # Multiply by camera matrix and add image center
         return img_points
+
+    def inverse_camera_tform(self, points, z_dist):
+        with torch.no_grad():
+            device = points.device
+            camera_mat = torch.zeros([self.batch_size, 2, 2], dtype=self.dtype, device=points.device)
+            camera_mat[:, 0, 0] = self.focal_length_x
+            camera_mat[:, 1, 1] = self.focal_length_y  # Make a 2x2 matrix with focal length on diagonal
+            camera_mat_inv = torch.inverse(camera_mat)
+
+            camera_transform = transform_mat(self.rotation, self.translation.unsqueeze(dim=-1))  # Make 4x4 rigid tform matrix
+            camera_transform_inv = torch.inverse(camera_transform)
+
+            pixel_points = torch.einsum('bki,bji->bjk', [camera_mat_inv, points - self.center.unsqueeze(dim=1)])
+            img_points = torch.ones((self.batch_size, points.shape[1], 4), device=device, dtype=self.dtype)
+            img_points[:, :, :2] = pixel_points * z_dist
+            img_points[:, :, 2] = z_dist
+
+            projected_points = torch.einsum('bki,bji->bjk', [camera_transform_inv, img_points])  # Apply rigid transform
+            non_homo_points = projected_points[:, :, :3]
+        return non_homo_points

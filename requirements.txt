@@ -1,13 +1,14 @@
 numpy>=1.16.2
 torch==1.0.1.post2
+#torch==1.1.0
 torchgeometry>=0.1.2
 PyYAML==5.1.1
-configargparse
+#configargparse
 smplx
 pillow
 opencv-python
 tqdm
-human_body_prior
+#human_body_prior
 pyrender>=0.1.23
 trimesh>=2.37.6
 scipy

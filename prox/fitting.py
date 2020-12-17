@@ -34,6 +34,9 @@ import misc_utils as utils
 import dist_chamfer as ext
 distChamfer = ext.chamferDist()
 
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+
 @torch.no_grad()
 def guess_init(model,
                joints_2d,
@@ -139,6 +142,13 @@ class FittingMonitor(object):
                 self.vis_o3d.create_window()
                 self.body_o3d = o3d.TriangleMesh()
                 self.scan = o3d.PointCloud()
+
+                self.joints_opt = []
+                self.joints_gt = []
+                for i in range(25):
+                    color = cm.jet(i / 25.0)[:3]
+                    self.joints_opt.append(self.get_o3d_sphere(color=color))
+                    self.joints_gt.append(self.get_o3d_sphere(color=color, radius=0.03))
             else:
                 self.mv = MeshViewer(body_color=self.body_color)
         return self
@@ -149,6 +159,16 @@ class FittingMonitor(object):
                 self.vis_o3d.close()
             else:
                 self.mv.close_viewer()
+
+    def get_o3d_sphere(self, color=[0.3, 1.0, 0.3], pos=[0, 0, 0], radius=0.06):
+        mesh_sphere = o3d.geometry.create_mesh_sphere(radius=radius, resolution=5)
+        mesh_sphere.compute_vertex_normals()
+        mesh_sphere.paint_uniform_color(color)
+        mean = np.asarray(mesh_sphere.vertices).mean(axis=0)
+        diff = np.asarray(pos) - mean
+        print(diff, type(diff))
+        mesh_sphere.translate(diff)
+        return mesh_sphere
 
     def set_colors(self, vertex_color):
         batch_size = self.colors.shape[0]
@@ -259,6 +279,7 @@ class FittingMonitor(object):
                 model_output = body_model(return_verts=True,
                                           body_pose=body_pose)
                 vertices = model_output.vertices.detach().cpu().numpy()
+                joints = model_output.joints.detach().cpu().numpy().squeeze()
 
                 if self.steps == 0 and self.viz_mode == 'o3d':
 
@@ -268,6 +289,22 @@ class FittingMonitor(object):
                     self.body_o3d.triangle_normals = o3d.Vector3dVector([])
                     self.body_o3d.compute_vertex_normals()
                     self.vis_o3d.add_geometry(self.body_o3d)
+
+                    joints_gt_3d = camera.inverse_camera_tform(gt_joints, 1.7)
+
+                    # Visualize SMPL joints - Patrick
+                    for i in range(25):
+                        mean = np.asarray(self.joints_opt[i].vertices).mean(axis=0)
+                        self.joints_opt[i].translate(joints[i, :] - mean)
+                        self.vis_o3d.add_geometry(self.joints_opt[i])
+
+                        j = joints_gt_3d[0, i, :].detach().cpu().numpy()
+                        self.joints_gt[i].translate(j)
+                        self.vis_o3d.add_geometry(self.joints_gt[i])
+
+                    # Visualize camera
+                    camera_origin = camera.translation.detach().cpu().numpy().squeeze()
+                    self.vis_o3d.add_geometry(self.get_o3d_sphere([1.0, 0.0, 0.0], pos=camera_origin))
 
                     if scan_tensor is not None:
                         self.scan.points = o3d.Vector3dVector(scan_tensor.detach().cpu().numpy().squeeze())
@@ -285,6 +322,11 @@ class FittingMonitor(object):
                         self.body_o3d.vertex_normals = o3d.Vector3dVector([])
                         self.body_o3d.triangle_normals = o3d.Vector3dVector([])
                         self.body_o3d.compute_vertex_normals()
+
+                        # Visualize SMPL joints - Patrick
+                        for i in range(25):
+                            mean = np.asarray(self.joints_opt[i].vertices).mean(axis=0)
+                            self.joints_opt[i].translate(joints[i, :] - mean)
 
                         self.vis_o3d.update_geometry()
                         self.vis_o3d.poll_events()
@@ -462,6 +504,7 @@ class SMPLifyLoss(nn.Module):
 
         # Calculate the distance of the projected joints from
         # the ground truth 2D detections
+        joint_err = gt_joints - projected_joints
         joint_diff = self.robustifier(gt_joints - projected_joints)
         joint_loss = (torch.sum(weights ** 2 * joint_diff) *
                       self.data_weight ** 2)
@@ -680,6 +723,13 @@ class SMPLifyCameraInitLoss(nn.Module):
                 **kwargs):
 
         projected_joints = camera(body_model_output.joints)
+
+        joint_err = gt_joints - projected_joints
+        joint_err_sel = torch.index_select(joint_err, 1, self.init_joints_idxs).cpu().detach().numpy()
+
+        # plt.scatter(gt_joints[0, :, 0].cpu().detach().numpy(), gt_joints[0, :, 1].cpu().detach().numpy())
+        # plt.scatter(projected_joints[0, :, 0].cpu().detach().numpy(), projected_joints[0, :, 1].cpu().detach().numpy())
+        # plt.show()
 
         joint_error = torch.pow(
             torch.index_select(gt_joints, 1, self.init_joints_idxs) -

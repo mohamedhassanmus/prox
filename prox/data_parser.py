@@ -36,6 +36,11 @@ from torch.utils.data import Dataset
 from misc_utils import smpl_to_openpose
 from projection_utils import Projection
 
+import sys
+sys.path.append('/home/patrick/bed/SLP-Dataset-and-Code')
+import utils.utils as ut    # SLP utils
+import open3d as o3d
+
 
 Keypoints = namedtuple('Keypoints',
                        ['keypoints', 'gender_gt', 'gender_pd'])
@@ -243,6 +248,19 @@ class OpenPose(Dataset):
         if depth_im is not None and mask is not None:
             scan_dict = self.projection.create_scan(mask, depth_im, mask_on_color=self.mask_on_color)
             init_trans = np.mean(scan_dict.get('points'), axis=0)
+
+        # Visualize pointclouds - Patrick
+        # pcd_mine = o3d.geometry.PointCloud()
+        # points_mine = ut.get_ptc(depth_im, f=[367.8, 367.8], c=[208.1, 259.7])
+        # points_mine = points_mine[points_mine[:, 0] != 0, :]
+        # pcd_mine.points = o3d.utility.Vector3dVector(points_mine)
+        # pcd_mine.translate([0, 0, 0.1])
+        #
+        # pcd_theirs = o3d.geometry.PointCloud()
+        # pcd_theirs.points = o3d.utility.Vector3dVector(scan_dict['points'])
+        #
+        # o3d.visualization.draw_geometries([pcd_mine, pcd_theirs])
+        # print('Keypoints', keypoints)
 
         output_dict = {'fn': img_fn,
                        'img_path': img_path,

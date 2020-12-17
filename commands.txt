@@ -1,0 +1,25 @@
+# View recording
+
+python prox/viz/viz_raw_data.py quantitative/recordings/vicon_03301_01 --show_color 1 --show_body_only 1
+
+
+
+# Run fitting on demo quantitative
+
+python prox/main.py --config cfg_files/PROX.yaml  --recording_dir=quantitative/recordings/vicon_03301_01    --output_folder ./PROX_results --vposer_ckpt models/vposer_v1_0/ --part_segm_fn models/smplx_parts_segm.pkl  --model_folder ./models
+
+
+# Run fitting on slp
+
+python prox/main.py --config cfg_files/SLP.yaml --recording_dir=slp_tform/recordings/uncover_00001
+
+
+
+
+# Run fitting on slp VIS
+
+python prox/main.py --config cfg_files/SLP.yaml --recording_dir=slp_tform/recordings/uncover_00001  --visualize=True
+
+
+
+

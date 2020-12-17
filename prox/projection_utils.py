@@ -51,13 +51,14 @@ class Projection():
         v = v.reshape((-1,3)).copy()
         return cv2.projectPoints(v, np.asarray(cam['R']), np.asarray(cam['T']), np.asarray(cam['camera_mtx']), np.asarray(cam['k']))[0].squeeze()
 
-    def create_scan(self, mask, depth_im, color_im=None, mask_on_color=False, coord='color', TH=1e-2, default_color=[1.00, 0.75, 0.80]):
+    def create_scan(self, mask, depth_im, color_im=None, mask_on_color=False, coord='depth', TH=1e-2, default_color=[1.00, 0.75, 0.80]):
         if not mask_on_color:
             depth_im[mask != 0] = 0
         if depth_im.size == 0:
             return {'v': []}
 
         points = self.unproject_depth_image(depth_im, self.depth_cam).reshape(-1, 3)
+        print('points', points)
         colors = np.tile(default_color, [points.shape[0], 1])
 
         uvs = self.projectPoints(points, self.color_cam)
@@ -67,8 +68,7 @@ class Projection():
         valid_idx = np.logical_and(valid_x, valid_y)
         if mask_on_color:
             valid_mask_idx = valid_idx.copy()
-            valid_mask_idx[valid_mask_idx == True] = mask[uvs[valid_idx == True][:, 1], uvs[valid_idx == True][:,
-                                                                                        0]] == 0
+            valid_mask_idx[valid_mask_idx == True] = mask[uvs[valid_idx == True][:, 1], uvs[valid_idx == True][:, 0]] == 0
             uvs = uvs[valid_mask_idx == True]
             points = points[valid_mask_idx]
             colors = np.tile(default_color, [points.shape[0], 1])
@@ -87,6 +87,8 @@ class Projection():
             stacked = np.column_stack((points, np.ones(len(points)) ))
             points = np.dot(T, stacked.T).T[:, :3]
             points = np.ascontiguousarray(points)
+        else:
+            print('Skipping depth-to-color mapping')
         ind = points[:, 2] > TH
         return {'points':points[ind], 'colors':colors[ind]}
 
