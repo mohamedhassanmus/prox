@@ -3,6 +3,9 @@
 *.pkl
 *.json
 *.pyc
+quantitative/
+qualitative/
+slp_fits/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
