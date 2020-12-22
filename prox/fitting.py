@@ -676,9 +676,17 @@ class SMPLifyLoss(nn.Module):
                       left_hand_prior_loss + right_hand_prior_loss + m2s_dist + s2m_dist
                       + sdf_penetration_loss + contact_loss)
         if visualize:
-            print('total:{:.2f}, joint_loss:{:0.2f},  s2m:{:0.2f}, m2s:{:0.2f}, penetration:{:0.2f}, contact:{:0.2f}'.
+            # print('total:{:.2f}, joint_loss:{:0.2f},  s2m:{:0.2f}, m2s:{:0.2f}, penetration:{:0.2f}, contact:{:0.2f}'.
+            #       format(total_loss.item(), joint_loss.item() ,torch.tensor(s2m_dist).item(),
+            #              torch.tensor(m2s_dist).item() ,torch.tensor(sdf_penetration_loss).item(), torch.tensor(contact_loss).item()))
+            # print('pprior:{:.2f}, shape:{:.2f}, angle_pri:{:.2f}, pen:{:.2f}, jaw:{:.2f}, expres:{:.2f}'.format(
+            #     pprior_loss.item(), shape_loss.item(), angle_prior_loss.item(),
+            #     torch.tensor(pen_loss).item(), torch.tensor(jaw_prior_loss).item(), torch.tensor(expression_loss).item()))
+
+            print('tot:{:.2f}, j_loss:{:0.2f}, s2m:{:0.2f}, m2s:{:0.2f}, pprior:{:.2f}, shape:{:.2f}, ang_pri:{:.2f}, pen:{:.2f}'.
                   format(total_loss.item(), joint_loss.item() ,torch.tensor(s2m_dist).item(),
-                         torch.tensor(m2s_dist).item() ,torch.tensor(sdf_penetration_loss).item(), torch.tensor(contact_loss).item()))
+                         torch.tensor(m2s_dist).item(), pprior_loss.item(), shape_loss.item(),
+                         angle_prior_loss.item(), torch.tensor(pen_loss).item()))
         return total_loss
 
 
