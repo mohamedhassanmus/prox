@@ -139,8 +139,8 @@ def fit_single_frame(img,
 
     device = torch.device('cuda') if use_cuda else torch.device('cpu')
 
-    if visualize:
-        pil_img.fromarray((img * 255).astype(np.uint8)).show()
+    # if visualize:
+    #     pil_img.fromarray((img * 255).astype(np.uint8)).show()
 
     if degrees is None:
         degrees = [0, 90, 180, 270]
