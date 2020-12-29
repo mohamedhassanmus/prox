@@ -393,6 +393,12 @@ class SMPLifyLoss(nn.Module):
                  contact_verts_ids=None,
                  rho_contact=0.0,
                  contact_angle=0.0,
+                 betanet=None,
+                 height=None,
+                 weight=None,
+                 gender='male',
+                 weight_w=0,
+                 height_w=0,
                  **kwargs):
 
         super(SMPLifyLoss, self).__init__()
@@ -417,6 +423,16 @@ class SMPLifyLoss(nn.Module):
 
         self.R = R
         self.t = t
+
+        self.betanet = betanet
+        self.height = height
+        self.weight = weight
+        self.weight_w = weight_w
+        self.height_w = height_w
+        gender_tensor = torch.tensor([0, 1], dtype=dtype).unsqueeze(0)
+        if gender != 'male':
+            gender_tensor = 1 - gender_tensor
+        self.register_buffer('gender_tensor', gender_tensor)
 
         self.interpenetration = interpenetration
         if self.interpenetration:
@@ -520,6 +536,19 @@ class SMPLifyLoss(nn.Module):
 
         shape_loss = torch.sum(self.shape_prior(
             body_model_output.betas)) * self.shape_weight ** 2
+
+
+        # Patrick - weight and height loss
+        tmp_betas = body_model_output.betas
+        tmp_gender = self.gender_tensor
+        batch_weight_est, batch_height_est = self.betanet(tmp_gender, tmp_betas)
+        batch_height_est = 100 * batch_height_est
+        print('Height {} est {}'.format(self.height, batch_height_est))
+        print('Weight {} est {}'.format(self.weight, batch_weight_est))
+        print('Cur gender flag', tmp_gender)
+        physical_loss = F.mse_loss(self.weight, batch_weight_est) * self.weight_w + F.mse_loss(self.height, batch_height_est) * self.height_w
+
+
         # Calculate the prior over the joint rotations. This a heuristic used
         # to prevent extreme rotation of the elbows and knees
         body_pose = body_model_output.full_pose[:, 3:66]
@@ -674,7 +703,7 @@ class SMPLifyLoss(nn.Module):
                       angle_prior_loss + pen_loss +
                       jaw_prior_loss + expression_loss +
                       left_hand_prior_loss + right_hand_prior_loss + m2s_dist + s2m_dist
-                      + sdf_penetration_loss + contact_loss)
+                      + sdf_penetration_loss + contact_loss + physical_loss)
         if visualize:
             # print('total:{:.2f}, joint_loss:{:0.2f},  s2m:{:0.2f}, m2s:{:0.2f}, penetration:{:0.2f}, contact:{:0.2f}'.
             #       format(total_loss.item(), joint_loss.item() ,torch.tensor(s2m_dist).item(),
@@ -683,10 +712,10 @@ class SMPLifyLoss(nn.Module):
             #     pprior_loss.item(), shape_loss.item(), angle_prior_loss.item(),
             #     torch.tensor(pen_loss).item(), torch.tensor(jaw_prior_loss).item(), torch.tensor(expression_loss).item()))
 
-            print('tot:{:.2f}, j_loss:{:0.2f}, s2m:{:0.2f}, m2s:{:0.2f}, pprior:{:.2f}, shape:{:.2f}, ang_pri:{:.2f}, pen:{:.2f}'.
+            print('tot:{:.2f}, j_loss:{:0.2f}, s2m:{:0.2f}, m2s:{:0.2f}, pprior:{:.2f}, shape:{:.2f}, ang_pri:{:.2f}, pen:{:.2f}, phys{:.2f}'.
                   format(total_loss.item(), joint_loss.item() ,torch.tensor(s2m_dist).item(),
                          torch.tensor(m2s_dist).item(), pprior_loss.item(), shape_loss.item(),
-                         angle_prior_loss.item(), torch.tensor(pen_loss).item()))
+                         angle_prior_loss.item(), torch.tensor(pen_loss).item(), physical_loss.item()))
         return total_loss
 
 

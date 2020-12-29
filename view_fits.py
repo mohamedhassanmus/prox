@@ -24,9 +24,10 @@ FITS_PATH = '/home/patrick/bed/prox/slp_fits'
 def view_fit(sample, idx):
     ply_path = os.path.join(FITS_PATH, '{}_{:05d}'.format(sample[1], sample[0]), 'meshes', 'image_{:06d}'.format(sample[2]), '000.ply')
     if not os.path.exists(ply_path):
-        print('Couldnt find', ply_path)
+        # print('Couldnt find', ply_path)
         return
 
+    print('Reading', ply_path)
     depth, jt, bb = SLP_dataset.get_array_joints(idx_smpl=idx, mod='depthRaw', if_sq_bb=False)
     bb = bb.round().astype(int)
 
@@ -36,10 +37,20 @@ def view_fit(sample, idx):
 
     smpl_mesh = o3d.io.read_triangle_mesh(ply_path)
     smpl_mesh.compute_vertex_normals()
-    print(np.asarray(smpl_mesh.vertices))
+    # print(np.asarray(smpl_mesh.vertices))
 
     # o3d.visualization.draw_geometries([smpl_mesh])
-    o3d.visualization.draw_geometries([pcd, smpl_mesh])
+    vis = o3d.Visualizer()
+    vis.create_window()
+    vis.add_geometry(pcd)
+    vis.add_geometry(smpl_mesh)
+    ctr = vis.get_view_control()
+    parameters = o3d.io.read_pinhole_camera_parameters("view_fits_camera.json")
+    ctr.convert_from_pinhole_camera_parameters(parameters)
+    vis.run()
+    vis.destroy_window()
+
+    # o3d.visualization.draw_geometries([pcd, smpl_mesh])
 
 
 def make_dataset():

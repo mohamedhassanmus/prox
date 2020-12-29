@@ -40,6 +40,8 @@ from fit_single_frame import fit_single_frame
 from camera import create_camera
 from prior import create_prior
 
+from models.betanet import FC
+
 torch.backends.cudnn.enabled = False
 
 def main(**args):
@@ -156,6 +158,9 @@ def main(**args):
 
     use_hands = args.get('use_hands', True)
     use_face = args.get('use_face', True)
+    use_height_weight = args.get('use_height_weight', False)
+    height_w = args.pop('height_w', 0)
+    weight_w = args.pop('weight_w', 0)
 
     body_pose_prior = create_prior(
         prior_type=args.get('body_prior_type'),
@@ -223,6 +228,8 @@ def main(**args):
     joint_weights.unsqueeze_(dim=0)
 
     for idx, data in enumerate(dataset_obj):
+        # if idx < 24:
+        #     continue
 
         img = data['img']
         fn = data['fn']
@@ -270,6 +277,12 @@ def main(**args):
             elif gender == 'male':
                 body_model = male_model
 
+            height = None
+            weight = None
+            if use_height_weight:
+                height = data['height'][person_id]
+                weight = data['weight'][person_id]
+
             out_img_fn = osp.join(curr_img_folder, 'output.png')
 
             fit_single_frame(img, keypoints[[person_id]], init_trans, scan,
@@ -295,6 +308,11 @@ def main(**args):
                              right_hand_prior=right_hand_prior,
                              jaw_prior=jaw_prior,
                              angle_prior=angle_prior,
+                             height=height,
+                             weight=weight,
+                             gender=gender,
+                             weight_w=weight_w,
+                             height_w=height_w,
                              **args)
 
     elapsed = time.time() - start

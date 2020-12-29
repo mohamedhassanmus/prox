@@ -271,6 +271,15 @@ def parse_config(argv=None):
                         help='The tolerance threshold for the function')
     parser.add_argument('--maxiters', type=int, default=100,
                         help='The maximum iterations for the optimization')
+
+    parser.add_argument('--use_height_weight', default=False,
+                        type=lambda x: x.lower() in ['true', '1'],
+                        help='Use height and weight')
+    parser.add_argument('--height_w', default=0, type=float,
+                        help='The optimization weight for height')
+    parser.add_argument('--weight_w', default=0, type=float,
+                        help='The optimization weight for weight')
+
     #######################################################################
     ### PROX
     parser.add_argument('--frame_ids',

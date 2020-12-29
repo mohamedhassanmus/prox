@@ -43,7 +43,7 @@ import open3d as o3d
 
 
 Keypoints = namedtuple('Keypoints',
-                       ['keypoints', 'gender_gt', 'gender_pd'])
+                       ['keypoints', 'gender_gt', 'gender_pd', 'height', 'weight'])
 
 Keypoints.__new__.__defaults__ = (None,) * len(Keypoints._fields)
 
@@ -64,6 +64,8 @@ def read_keypoints(keypoint_fn, use_hands=True, use_face=True,
 
     gender_pd = []
     gender_gt = []
+    height = []
+    weight = []
     for idx, person_data in enumerate(data['people']):
         body_keypoints = np.array(person_data['pose_keypoints_2d'],
                                   dtype=np.float32)
@@ -100,10 +102,15 @@ def read_keypoints(keypoint_fn, use_hands=True, use_face=True,
         if 'gender_gt' in person_data:
             gender_gt.append(person_data['gender_gt'])
 
+        if 'weight' in person_data:
+            weight.append(person_data['weight'])
+        if 'height' in person_data:
+            height.append(person_data['height'])
+
         keypoints.append(body_keypoints)
 
     return Keypoints(keypoints=keypoints, gender_pd=gender_pd,
-                     gender_gt=gender_gt)
+                     gender_gt=gender_gt, height=height, weight=weight)
 
 
 class OpenPose(Dataset):
@@ -276,6 +283,13 @@ class OpenPose(Dataset):
         if keyp_tuple.gender_pd is not None:
             if len(keyp_tuple.gender_pd) > 0:
                 output_dict['gender_pd'] = keyp_tuple.gender_pd
+
+        if keyp_tuple.height is not None:
+            if len(keyp_tuple.height) > 0:
+                output_dict['height'] = keyp_tuple.height
+        if keyp_tuple.weight is not None:
+            if len(keyp_tuple.weight) > 0:
+                output_dict['weight'] = keyp_tuple.weight
         return output_dict
 
     def __iter__(self):

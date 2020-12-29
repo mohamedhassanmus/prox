@@ -22,6 +22,18 @@ OUT_PATH = '/home/patrick/bed/prox/slp_tform'
 phases = ['uncover']
 
 
+def phyvec_to_dict(phy_vec):
+    # From SLP docs: weight, height, gender(1:male, 0:female), bust, waist, hip， right upper arm， right lower arm， right upper leg， right lower leg
+    d = dict()
+    d['weight'] = phy_vec[0]
+    d['height'] = phy_vec[1]
+    d['gender_gt'] = 'male'
+    if phy_vec[2] < 0.5:
+        d['gender_gt'] = 'female'
+
+    return d
+
+
 def make_folder(path):
     if not os.path.exists(path):
         os.makedirs(path)
@@ -53,6 +65,7 @@ def copy_keypoints(sample, idx):
     # Convert the SLP 14-points to coco25 format
 
     depth, jtB, bbB = SLP_dataset.get_array_joints(idx_smpl=idx, mod='depthRaw')
+    phy_vec = SLP_dataset.get_phy(idx=idx)
 
     slp_to_coco25 = [11, 10, 9, 12, 13, 14, 4, 3, 2, 5, 6, 7, 1, 0]     # What I think it should be
     slp_to_coco25 = [11, 10, 9, 12, 13, 14, 4, 3, 2, 5, 6, 7, 1, 0]     # Flipping it for shiggles
@@ -62,6 +75,7 @@ def copy_keypoints(sample, idx):
         joints_coco25[slp_to_coco25[i], 2] = 1  # Set confidence
 
     anno_dict = {'pose_keypoints_2d': joints_coco25.tolist()}
+    anno_dict.update(phyvec_to_dict(phy_vec))
     full_dict = {'people': [anno_dict]}     # Wrap in the correct format
 
     dest_folder = os.path.join(OUT_PATH, 'keypoints', '{}_{:05d}'.format(sample[1], sample[0]))

@@ -46,6 +46,7 @@ import fitting
 from human_body_prior.tools.model_loader import load_vposer
 from psbody.mesh import Mesh
 import scipy.sparse as sparse
+from models.betanet import FC
 
 
 def fit_single_frame(img,
@@ -132,6 +133,11 @@ def fit_single_frame(img,
                      body_segments_dir=None,
                      load_scene=False,
                      scene_dir=None,
+                     height=None,
+                     weight=None,
+                     gender='male',
+                     weight_w=0,
+                     height_w=0,
                      **kwargs):
     assert batch_size == 1, 'PyTorch L-BFGS only supports batch_size == 1'
     body_model.reset_params()
@@ -234,6 +240,12 @@ def fit_single_frame(img,
                                      dtype=dtype)
     else:
         body_mean_pose = body_pose_prior.get_mean().detach().cpu()
+
+    betanet = None
+    if height is not None:
+        betanet = torch.load('models/betanet_old_pytorch.pt')
+        betanet = betanet.to(device=device)
+        betanet.eval()
 
     keypoint_data = torch.tensor(keypoints, dtype=dtype)
     gt_joints = keypoint_data[:, :, :2]
@@ -457,6 +469,12 @@ def fit_single_frame(img,
                                rho_contact=rho_contact,
                                contact_angle=contact_angle,
                                dtype=dtype,
+                               betanet=betanet,
+                               height=height,
+                               weight=weight,
+                               gender=gender,
+                               weight_w=weight_w,
+                               height_w=height_w,
                                **kwargs)
     loss = loss.to(device=device)
 

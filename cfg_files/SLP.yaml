@@ -26,6 +26,9 @@ use_vposer: True
 vposer_ckpt: "models/vposer_v1_0/"
 part_segm_fn: "models/smplx_parts_segm.pkl"
 
+height_w: 100
+weight_w: 100
+
 ###################
 contact: False
 contact_angle: 45
@@ -67,10 +70,10 @@ m2s_weights:
     - 1.0
     - 1.0
     - 1e2
-    - 1e2
-    - 1e2
     - 5e2
-    - 5e2
+    - 10e2
+    - 50e2
+    - 50e2
 
 s2m: True
 rho_s2m: 2e-1
@@ -117,6 +120,8 @@ prior_folder: 'priors'
 model_folder: 'models'
 result_folder: 'results'
 gender: "male"
+gender_lbl_type: 'gt'   # Patrick: use gender in keypoints file
+use_height_weight: True
 model_type: 'smplx'
 # Flag for using the GPU
 use_cuda: True
@@ -166,8 +171,8 @@ coll_loss_weights:
     - 0.0
     - 0.0002
     - 0.0002
-    - 0.0002
     - 0.002
+    - 0.02
 expr_weights:
     - 1.0e2
     - 5.0e1
