@@ -26,8 +26,10 @@ use_vposer: True
 vposer_ckpt: "models/vposer_v1_0/"
 part_segm_fn: "models/smplx_parts_segm.pkl"
 
-height_w: 100
+height_w: 50
 weight_w: 100
+
+#batch_size: 4
 
 ###################
 contact: False
@@ -116,6 +118,7 @@ joints_to_ign:
     - 22
     - 23
     - 24
+    - 0 # Ignore the head since SLP annotates higher than the nose
 prior_folder: 'priors'
 model_folder: 'models'
 result_folder: 'results'

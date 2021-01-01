@@ -541,10 +541,11 @@ class SMPLifyLoss(nn.Module):
         # Patrick - weight and height loss
         tmp_betas = body_model_output.betas
         tmp_gender = self.gender_tensor
+        # print('Gender tensor', tmp_gender)
         batch_weight_est, batch_height_est = self.betanet(tmp_gender, tmp_betas)
         batch_height_est = 100 * batch_height_est
-        print('Height {} est {}'.format(self.height, batch_height_est))
-        print('Weight {} est {}'.format(self.weight, batch_weight_est))
+        print('Height {} est {}'.format(self.height, batch_height_est.detach().item()))
+        print('Weight {} est {}'.format(self.weight, batch_weight_est.detach().item()))
         print('Cur gender flag', tmp_gender)
         physical_loss = F.mse_loss(self.weight, batch_weight_est) * self.weight_w + F.mse_loss(self.height, batch_height_est) * self.height_w
 
