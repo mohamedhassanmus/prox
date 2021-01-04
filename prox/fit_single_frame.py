@@ -267,20 +267,20 @@ def fit_single_frame(img,
     grid_min = None
     grid_max = None
     voxel_size = None
-    if sdf_penetration:
-        with open(osp.join(sdf_dir, scene_name + '.json'), 'r') as f:
-            sdf_data = json.load(f)
-            grid_min = torch.tensor(np.array(sdf_data['min']), dtype=dtype, device=device)
-            grid_max = torch.tensor(np.array(sdf_data['max']), dtype=dtype, device=device)
-            grid_dim = sdf_data['dim']
-        voxel_size = (grid_max - grid_min) / grid_dim
-        sdf = np.load(osp.join(sdf_dir, scene_name + '_sdf.npy')).reshape(grid_dim, grid_dim, grid_dim)
-        sdf = torch.tensor(sdf, dtype=dtype, device=device)
-        if osp.exists(osp.join(sdf_dir, scene_name + '_normals.npy')):
-            sdf_normals = np.load(osp.join(sdf_dir, scene_name + '_normals.npy')).reshape(grid_dim, grid_dim, grid_dim, 3)
-            sdf_normals = torch.tensor(sdf_normals, dtype=dtype, device=device)
-        else:
-            print("Normals not found...")
+    # if sdf_penetration:
+    #     with open(osp.join(sdf_dir, scene_name + '.json'), 'r') as f:
+    #         sdf_data = json.load(f)
+    #         grid_min = torch.tensor(np.array(sdf_data['min']), dtype=dtype, device=device)
+    #         grid_max = torch.tensor(np.array(sdf_data['max']), dtype=dtype, device=device)
+    #         grid_dim = sdf_data['dim']
+    #     voxel_size = (grid_max - grid_min) / grid_dim
+    #     sdf = np.load(osp.join(sdf_dir, scene_name + '_sdf.npy')).reshape(grid_dim, grid_dim, grid_dim)
+    #     sdf = torch.tensor(sdf, dtype=dtype, device=device)
+    #     if osp.exists(osp.join(sdf_dir, scene_name + '_normals.npy')):
+    #         sdf_normals = np.load(osp.join(sdf_dir, scene_name + '_normals.npy')).reshape(grid_dim, grid_dim, grid_dim, 3)
+    #         sdf_normals = torch.tensor(sdf_normals, dtype=dtype, device=device)
+    #     else:
+    #         print("Normals not found...")
 
 
     with open(os.path.join(cam2world_dir, scene_name + '.json'), 'r') as f:

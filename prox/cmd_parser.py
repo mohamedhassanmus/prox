@@ -279,6 +279,8 @@ def parse_config(argv=None):
                         help='The optimization weight for height')
     parser.add_argument('--weight_w', default=0, type=float,
                         help='The optimization weight for weight')
+    parser.add_argument('--skip', default=0, type=int,
+                        help='Skip n samples to get to the harder ones')
 
     #######################################################################
     ### PROX

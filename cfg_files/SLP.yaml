@@ -45,7 +45,7 @@ contact_loss_weights:
     - 1e4
 load_scene: False
 ###################
-sdf_penetration: False
+sdf_penetration: True
 sdf_penetration_weights:
     - 0.0
     - 0.0

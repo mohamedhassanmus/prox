@@ -228,8 +228,8 @@ def main(**args):
     joint_weights.unsqueeze_(dim=0)
 
     for idx, data in enumerate(dataset_obj):
-        # if idx < 24:
-        #     continue
+        if idx < args['skip']:     # For visualization, skip to the interesting ones
+            continue
 
         img = data['img']
         fn = data['fn']

@@ -1,0 +1,4 @@
+SMPLX: 21 joints, 10475 verts, 20908 faces
+pose embedding 1x32, body pose 1x63
+
+SMPL: 23 joints, 6890 verts,

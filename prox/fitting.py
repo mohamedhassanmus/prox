@@ -637,26 +637,47 @@ class SMPLifyLoss(nn.Module):
             vertices.unsqueeze_(0)
 
         # Compute scene penetration using signed distance field (SDF)
+        # sdf_penetration_loss = 0.0
+        # if self.sdf_penetration and self.sdf_penetration_weight > 0:
+        #     grid_dim = self.sdf.shape[0]
+        #     sdf_ids = torch.round((vertices.squeeze() - self.grid_min) / self.voxel_size).to(dtype=torch.long)  # Convert SMPL vertex to closest voxel ID
+        #     sdf_ids.clamp_(min=0, max=grid_dim-1)   # Clamp to limits of grid
+        #
+        #     norm_vertices = (vertices - self.grid_min) / (self.grid_max - self.grid_min) * 2 - 1    # Put SMPL verts into voxel space
+        #     body_sdf = F.grid_sample(self.sdf.view(1, 1, grid_dim, grid_dim, grid_dim),
+        #                              norm_vertices[:, :, [2, 1, 0]].view(1, nv, 1, 1, 3),
+        #                              padding_mode='border')     # Calculate SDF for each SMPL vertex
+        #     sdf_normals = self.sdf_normals[sdf_ids[:,0], sdf_ids[:,1], sdf_ids[:,2]]    # Find the SDF normal for each SMPL vertex
+        #     # if there are no penetrating vertices then set sdf_penetration_loss = 0
+        #     if body_sdf.lt(0).sum().item() < 1:
+        #         sdf_penetration_loss = torch.tensor(0.0, dtype=joint_loss.dtype, device=joint_loss.device)
+        #     else:
+        #       if sdf_normals is None:
+        #         sdf_penetration_loss = self.sdf_penetration_weight * (body_sdf[body_sdf < 0].unsqueeze(dim=-1).abs()).pow(2).sum(dim=-1).sqrt().sum()
+        #       else:
+        #         sdf_penetration_loss = self.sdf_penetration_weight * (body_sdf[body_sdf < 0].unsqueeze(dim=-1).abs() * sdf_normals[body_sdf.view(-1) < 0, :]).pow(2).sum(dim=-1).sqrt().sum()
+
         sdf_penetration_loss = 0.0
         if self.sdf_penetration and self.sdf_penetration_weight > 0:
-            grid_dim = self.sdf.shape[0]
-            sdf_ids = torch.round(
-               (vertices.squeeze() - self.grid_min) / self.voxel_size).to(dtype=torch.long)
-            sdf_ids.clamp_(min=0, max=grid_dim-1)
+            # Bed is at +z 2150, pointing down
+            bed_height = 2.150
 
-            norm_vertices = (vertices - self.grid_min) / (self.grid_max - self.grid_min) * 2 - 1
-            body_sdf = F.grid_sample(self.sdf.view(1, 1, grid_dim, grid_dim, grid_dim),
-                                     norm_vertices[:, :, [2, 1, 0]].view(1, nv, 1, 1, 3),
-                                     padding_mode='border')
-            sdf_normals = self.sdf_normals[sdf_ids[:,0], sdf_ids[:,1], sdf_ids[:,2]]
+            body_sdf = bed_height - vertices[:, :, 2]   # Less than zero inside bed
+            sdf_normals = torch.zeros_like(vertices)
+            sdf_normals[:, :, 2] = -1
+
             # if there are no penetrating vertices then set sdf_penetration_loss = 0
             if body_sdf.lt(0).sum().item() < 1:
                 sdf_penetration_loss = torch.tensor(0.0, dtype=joint_loss.dtype, device=joint_loss.device)
             else:
-              if sdf_normals is None:
-                sdf_penetration_loss = self.sdf_penetration_weight * (body_sdf[body_sdf < 0].unsqueeze(dim=-1).abs()).pow(2).sum(dim=-1).sqrt().sum()
-              else:
-                sdf_penetration_loss = self.sdf_penetration_weight * (body_sdf[body_sdf < 0].unsqueeze(dim=-1).abs() * sdf_normals[body_sdf.view(-1) < 0, :]).pow(2).sum(dim=-1).sqrt().sum()
+                if sdf_normals is None:
+                    sdf_penetration_loss = self.sdf_penetration_weight * (body_sdf[body_sdf < 0].unsqueeze(dim=-1).abs()).pow(2).sum(dim=-1).sqrt().sum()
+                else:
+                    contact_mask = body_sdf < 0
+                    sel_sdf = body_sdf[contact_mask].unsqueeze(dim=-1).abs()
+                    sel_normal = sdf_normals[0, body_sdf.view(-1) < 0, :]   # Will not work batched
+                    sdf_penetration_loss = self.sdf_penetration_weight * (sel_sdf * sel_normal).pow(2).sum(dim=-1).sqrt().sum()
+
 
         # Compute the contact loss
         contact_loss = 0.0
@@ -714,10 +735,10 @@ class SMPLifyLoss(nn.Module):
             #     pprior_loss.item(), shape_loss.item(), angle_prior_loss.item(),
             #     torch.tensor(pen_loss).item(), torch.tensor(jaw_prior_loss).item(), torch.tensor(expression_loss).item()))
 
-            print('tot:{:.2f}, j_loss:{:0.2f}, s2m:{:0.2f}, m2s:{:0.2f}, pprior:{:.2f}, shape:{:.2f}, ang_pri:{:.2f}, pen:{:.2f}, phys{:.2f}'.
+            print('tot:{:.2f}, j_loss:{:0.2f}, s2m:{:0.2f}, m2s:{:0.2f}, pprior:{:.2f}, shape:{:.2f}, ang_pri:{:.2f}, pen:{:.2f}, phys{:.2f}, sdf{:.2f}'.
                   format(total_loss.item(), joint_loss.item() ,torch.tensor(s2m_dist).item(),
                          torch.tensor(m2s_dist).item(), pprior_loss.item(), shape_loss.item(),
-                         angle_prior_loss.item(), torch.tensor(pen_loss).item(), physical_loss.item()))
+                         angle_prior_loss.item(), torch.tensor(pen_loss).item(), physical_loss.item(), torch.tensor(sdf_penetration_loss).item()))
         return total_loss
 
 
