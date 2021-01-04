@@ -654,9 +654,13 @@ def fit_single_frame(img,
                            for key, val in body_model.named_parameters()})
             if use_vposer:
                 result['pose_embedding'] = pose_embedding.detach().cpu().numpy()
-                body_pose = vposer.decode(
-                    pose_embedding,
-                    output_type='aa').view(1, -1) if use_vposer else None
+                body_pose = vposer.decode(pose_embedding, output_type='aa').view(1, -1) if use_vposer else None
+
+                print(str(type(body_model)))
+                if "smplx.body_models.SMPL'" in str(type(body_model)):
+                    wrist_pose = torch.zeros([body_pose.shape[0], 6], dtype=body_pose.dtype, device=body_pose.device)
+                    body_pose = torch.cat([body_pose, wrist_pose], dim=1)
+
                 result['body_pose'] = body_pose.detach().cpu().numpy()
 
             results.append({'loss': final_loss_val,

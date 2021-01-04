@@ -125,7 +125,7 @@ result_folder: 'results'
 gender: "male"
 gender_lbl_type: 'gt'   # Patrick: use gender in keypoints file
 use_height_weight: True
-model_type: 'smplx'
+model_type: 'smpl'
 # Flag for using the GPU
 use_cuda: True
 float_dtype: "float32"

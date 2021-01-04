@@ -122,7 +122,7 @@ def make_mask(sample, idx, keypoints=None, vis=False):
         o3d.visualization.draw_geometries([inlier_cloud, outlier_cloud] + all_joints)
 
     plane_eqation = a * pointcloud[:, 0] + b * pointcloud[:, 1] + c * pointcloud[:, 2] + d
-    pointcloud_sel = pointcloud[plane_eqation < -20, :]     # Only allow points 20mm above the plane
+    pointcloud_sel = pointcloud[plane_eqation < -10, :]     # Only allow points 20mm above the plane
     pcd2 = o3d.geometry.PointCloud()
     pcd2.points = o3d.utility.Vector3dVector(pointcloud_sel)
 
@@ -161,9 +161,10 @@ def make_dataset():
     all_samples = SLP_dataset.pthDesc_li
 
     for idx, sample in enumerate(tqdm(all_samples)):
+        print(sample)
         copy_images(sample, idx)
         keypoints = copy_keypoints(sample, idx)
-        make_mask(sample, idx, keypoints=keypoints)
+        make_mask(sample, idx, keypoints=keypoints, vis=False)
 
         # if idx > 5:
         #     break

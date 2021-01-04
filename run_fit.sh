@@ -1,1 +1,1 @@
-python prox/main.py --config cfg_files/SLP.yaml --recording_dir=slp_tform/recordings/uncover_00006 # --visualize=True
+python prox/main.py --config cfg_files/SLP.yaml --recording_dir=slp_tform/recordings/uncover_00001 # --visualize=True

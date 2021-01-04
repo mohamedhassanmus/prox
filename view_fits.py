@@ -1,18 +1,12 @@
 import sys
+# Set this to the SLP github repo
 sys.path.append('/home/patrick/bed/SLP-Dataset-and-Code')
 import numpy as np
 import open3d as o3d
 import os
-from glob import glob
-from shutil import copyfile
 from data.SLP_RD import SLP_RD
 import json
-import cv2
 import utils.utils as ut    # SLP utils
-from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
-import matplotlib.pyplot as plt
-from sklearn.neighbors import NearestNeighbors
-from prox.camera import PerspectiveCamera
 import torch
 from tqdm import tqdm
 import pickle
@@ -22,7 +16,6 @@ import trimesh
 
 SLP_PATH = '/home/patrick/datasets/SLP/danaLab'
 FITS_PATH = '/home/patrick/bed/prox/slp_fits'
-SLP_TFORM_PATH = '/home/patrick/bed/prox/slp_tform'
 
 
 def view_fit(sample, idx):
@@ -31,7 +24,7 @@ def view_fit(sample, idx):
         # print('Couldnt find', ply_path)
         return
 
-    json_path = os.path.join(SLP_TFORM_PATH, 'keypoints', '{}_{:05d}'.format(sample[1], sample[0]), 'image_{:06d}_keypoints.json'.format(sample[2]))
+    json_path = os.path.join(FITS_PATH, 'keypoints', '{}_{:05d}'.format(sample[1], sample[0]), 'image_{:06d}_keypoints.json'.format(sample[2]))
     with open(json_path) as keypoint_file:
         json_data = json.load(keypoint_file)
     gender = json_data['people'][0]['gender_gt']
@@ -41,11 +34,11 @@ def view_fit(sample, idx):
     pkl_path = os.path.join(FITS_PATH, '{}_{:05d}'.format(sample[1], sample[0]), 'results', 'image_{:06d}'.format(sample[2]), '000.pkl')
     pkl_np = pickle.load(open(pkl_path, 'rb'))
 
-    pkl_np['body_pose'] *= 0
-    pkl_np['global_orient'] *= 0
+    # pkl_np['body_pose'] *= 0
+    # pkl_np['global_orient'] *= 0
     pkl_np['transl'][0, 0] += 2
 
-    model = smplx.create('models', model_type='smplx', gender=gender)
+    model = smplx.create('models', model_type='smpl', gender=gender)
     output = model(betas=torch.Tensor(pkl_np['betas']), body_pose=torch.Tensor(pkl_np['body_pose']), transl=torch.Tensor(pkl_np['transl']),
                    global_orient=torch.Tensor(pkl_np['global_orient']), return_verts=True)
     smpl_vertices = output.vertices.detach().cpu().numpy().squeeze()
@@ -59,6 +52,11 @@ def view_fit(sample, idx):
     bb = bb.round().astype(int)
 
     pointcloud = ut.get_ptc(depth, SLP_dataset.f_d, SLP_dataset.c_d, bb) / 1000.0
+
+    print(pointcloud[:, 2])
+    valid_pcd = np.logical_and(pointcloud[:, 2] > 1.5, pointcloud[:, 2] < 2.5)  # Cut out any outliers above the bed
+    pointcloud = pointcloud[valid_pcd, :]
+
     pcd = o3d.geometry.PointCloud()
     pcd.points = o3d.utility.Vector3dVector(pointcloud)
 
@@ -106,12 +104,10 @@ def make_dataset():
 
 if __name__ == "__main__":
     class PseudoOpts:
-        SLP_fd = '/home/patrick/datasets/SLP/danaLab'  # give your dataset folder here
+        SLP_fd = SLP_PATH
         sz_pch = [256, 256]
         fc_depth = 50
         cov_li = ['uncover']  # give the cover class you want here
     SLP_dataset = SLP_RD(PseudoOpts, phase='all')  # all test result
-
-    print(SLP_dataset.pthDesc_li)
 
     make_dataset()
