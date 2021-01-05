@@ -513,7 +513,12 @@ class SMPLifyLoss(nn.Module):
                 scan_tensor=None, visualize=False,
                 scene_v=None, scene_vn=None, scene_f=None,ftov=None,
                 **kwargs):
-        projected_joints = camera(body_model_output.joints)
+
+        forehead_vert_id = 336      # Patrick: replace head joint with a vertex on the head
+        model_joints = body_model_output.joints
+        model_joints[:, 0, :] = body_model_output.vertices[:, forehead_vert_id, :]
+
+        projected_joints = camera(model_joints)
         # Calculate the weights for each joints
         weights = (joint_weights * joints_conf
                    if self.use_joints_conf else
@@ -736,7 +741,7 @@ class SMPLifyLoss(nn.Module):
             #     torch.tensor(pen_loss).item(), torch.tensor(jaw_prior_loss).item(), torch.tensor(expression_loss).item()))
 
             print('tot:{:.2f}, j_loss:{:0.2f}, s2m:{:0.2f}, m2s:{:0.2f}, pprior:{:.2f}, shape:{:.2f}, ang_pri:{:.2f}, pen:{:.2f}, phys{:.2f}, sdf{:.2f}'.
-                  format(total_loss.item(), joint_loss.item() ,torch.tensor(s2m_dist).item(),
+                  format(total_loss.item(), joint_loss.item(), torch.tensor(s2m_dist).item(),
                          torch.tensor(m2s_dist).item(), pprior_loss.item(), shape_loss.item(),
                          angle_prior_loss.item(), torch.tensor(pen_loss).item(), physical_loss.item(), torch.tensor(sdf_penetration_loss).item()))
         return total_loss
