@@ -22,6 +22,8 @@ flip: False
 camera_mode: 'fixed'
 output_folder: './slp_fits'
 
+side_view_thsh: 40 # If shoulders are narrower than this, try both orientations
+
 use_vposer: True
 vposer_ckpt: "models/vposer_v1_0/"
 part_segm_fn: "models/smplx_parts_segm.pkl"
@@ -161,13 +163,13 @@ interactive: True
 visualize: False
 # Relative change in loss value
 body_pose_prior_weights:
-    - 40
-    - 4
-    - 2
     - 1
     - 1
-    - 0.4
-    - 0.2
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
 coll_loss_weights:
     - 0.0
     - 0.0
