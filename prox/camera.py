@@ -111,7 +111,7 @@ class PerspectiveCamera(nn.Module):
     def inverse_camera_tform(self, points, z_dist):
         with torch.no_grad():
             device = points.device
-            camera_mat = torch.zeros([self.batch_size, 2, 2], dtype=self.dtype, device=points.device)
+            camera_mat = torch.zeros([points.shape[0], 2, 2], dtype=self.dtype, device=points.device)
             camera_mat[:, 0, 0] = self.focal_length_x
             camera_mat[:, 1, 1] = self.focal_length_y  # Make a 2x2 matrix with focal length on diagonal
             camera_mat_inv = torch.inverse(camera_mat)

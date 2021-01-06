@@ -246,9 +246,7 @@ class FittingMonitor(object):
             if backward:
                 optimizer.zero_grad()
 
-            body_pose = vposer.decode(
-                pose_embedding, output_type='aa').view(
-                    1, -1) if use_vposer else None
+            body_pose = vposer.decode(pose_embedding, output_type='aa').view(pose_embedding.shape[0], -1) if use_vposer else None
 
             if append_wrists:
                 wrist_pose = torch.zeros([body_pose.shape[0], 6],
@@ -279,12 +277,13 @@ class FittingMonitor(object):
             if self.visualize:
                 model_output = body_model(return_verts=True,
                                           body_pose=body_pose)
-                vertices = model_output.vertices.detach().cpu().numpy()
-                joints = model_output.joints.detach().cpu().numpy().squeeze()
+                vertices = model_output.vertices[0, :, :].detach().cpu().numpy()
+                joints = model_output.joints[0, :, :].detach().cpu().numpy()
+                gt_joints_b0 = gt_joints[0, :, :].unsqueeze(0)
 
                 if self.steps == 0 and self.viz_mode == 'o3d':
 
-                    self.body_o3d.vertices = o3d.Vector3dVector(vertices.squeeze())
+                    self.body_o3d.vertices = o3d.Vector3dVector(vertices)
                     self.body_o3d.triangles = o3d.Vector3iVector(body_model.faces)
                     self.body_o3d.vertex_normals = o3d.Vector3dVector([])
                     self.body_o3d.triangle_normals = o3d.Vector3dVector([])
@@ -318,7 +317,7 @@ class FittingMonitor(object):
                     self.vis_o3d.update_renderer()
                 elif self.steps % self.summary_steps == 0:
                     if self.viz_mode == 'o3d':
-                        self.body_o3d.vertices = o3d.Vector3dVector(vertices.squeeze())
+                        self.body_o3d.vertices = o3d.Vector3dVector(vertices)
                         self.body_o3d.triangles = o3d.Vector3iVector(body_model.faces)
                         self.body_o3d.vertex_normals = o3d.Vector3dVector([])
                         self.body_o3d.triangle_normals = o3d.Vector3dVector([])

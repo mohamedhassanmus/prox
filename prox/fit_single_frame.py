@@ -139,7 +139,9 @@ def fit_single_frame(img,
                      weight_w=0,
                      height_w=0,
                      **kwargs):
-    assert batch_size == 1, 'PyTorch L-BFGS only supports batch_size == 1'
+
+    if kwargs['optim_type'] == 'lbfgsls':
+        assert batch_size == 1, 'PyTorch L-BFGS only supports batch_size == 1'
     body_model.reset_params()
     body_model.transl.requires_grad = True
 
