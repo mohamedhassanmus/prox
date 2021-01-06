@@ -12,6 +12,7 @@ from tqdm import tqdm
 import pickle
 import smplx
 import trimesh
+from prox.misc_utils import text_3d
 
 
 SLP_PATH = '/home/patrick/datasets/SLP/danaLab'
@@ -112,6 +113,8 @@ def view_fit(sample, idx):
     vis.add_geometry(smpl_mesh)
     vis.add_geometry(smpl_mesh_calc)
     vis.add_geometry(rgbd_ptc)
+    lbl = 'Participant {} sample {}'.format(sample[0], sample[2])
+    vis.add_geometry(text_3d(lbl, (0, -1.5, 2), direction=(0.01, 0, -1), degree=-90, font_size=200, density=0.2))
 
     # vis.add_geometry(get_o3d_sphere(pos=smpl_vertices[336, :]))
 

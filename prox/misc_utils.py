@@ -48,7 +48,7 @@ def text_3d(text, pos, direction=None, degree=-90.0, density=10, font='/usr/shar
         direction = (0., 0., 1.)
 
     # font_obj = ImageFont.truetype(font, font_size)
-    font_obj = ImageFont.truetype(font, font_size * density)
+    font_obj = ImageFont.truetype(font, int(font_size * density))
     font_dim = font_obj.getsize(text)
 
     img = Image.new('RGB', font_dim, color=(255, 255, 255))

@@ -209,7 +209,7 @@ class FittingMonitor(object):
 
             if torch.isnan(loss).sum() > 0:
                 print('NaN loss value, stopping!')
-                break
+                return None
 
             if torch.isinf(loss).sum() > 0:
                 print('Infinite loss value, stopping!')

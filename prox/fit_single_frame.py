@@ -236,10 +236,10 @@ def fit_single_frame(img,
         vposer.eval()
 
     if use_vposer:
-        body_mean_pose = torch.zeros([batch_size, vposer_latent_dim],
-                                     dtype=dtype)
+        body_mean_pose = torch.zeros([batch_size, vposer_latent_dim], dtype=dtype)
     else:
-        body_mean_pose = body_pose_prior.get_mean().detach().cpu()
+        # body_mean_pose = body_pose_prior.get_mean().detach().cpu()
+        body_mean_pose = torch.zeros([batch_size, 69], dtype=dtype)
 
     betanet = None
     if height is not None:
@@ -567,7 +567,12 @@ def fit_single_frame(img,
         body_transl = body_model.transl.clone().detach()
         # Step 2: Optimize the full model
         final_loss_val = 0
-        for or_idx, orient in enumerate(tqdm(orientations, desc='Orientation')):
+
+        # for or_idx, orient in enumerate(orientations):
+        or_idx = 0
+        while or_idx < len(orientations):
+            orient = orientations[or_idx]
+            print('Trying orientation', or_idx, 'of', len(orientations), orient)
             opt_start = time.time()
 
             new_params = defaultdict(transl=body_transl,
@@ -627,6 +632,10 @@ def fit_single_frame(img,
                     pose_embedding=pose_embedding, vposer=vposer,
                     use_vposer=use_vposer)
 
+                print('Final loss val', final_loss_val)
+                if final_loss_val is None or np.isnan(final_loss_val):
+                    break
+
                 if interactive:
                     if use_cuda and torch.cuda.is_available():
                         torch.cuda.synchronize()
@@ -635,15 +644,18 @@ def fit_single_frame(img,
                         tqdm.write('Stage {:03d} done after {:.4f} seconds'.format(
                             opt_idx, elapsed))
 
+            if final_loss_val is None or np.isnan(final_loss_val):
+                print('Optimization FAILURE, retrying')
+                orientations.append(orientations[or_idx] * 0.9)
+                continue
+
             if interactive:
                 if use_cuda and torch.cuda.is_available():
                     torch.cuda.synchronize()
                 elapsed = time.time() - opt_start
-                tqdm.write(
-                    'Body fitting Orientation {} done after {:.4f} seconds'.format(
-                        or_idx, elapsed))
-                tqdm.write('Body final loss val = {:.5f}'.format(
-                    final_loss_val))
+                tqdm.write('Body fitting Orientation {} done after {:.4f} seconds'.format(or_idx, elapsed))
+                tqdm.write('Body final loss val = {:.5f}'.format(final_loss_val))
+            or_idx += 1
 
             # Get the result of the fitting process
             # Store in it the errors list in order to compare multiple
@@ -656,12 +668,12 @@ def fit_single_frame(img,
                 result['pose_embedding'] = pose_embedding.detach().cpu().numpy()
                 body_pose = vposer.decode(pose_embedding, output_type='aa').view(1, -1) if use_vposer else None
 
-                print(str(type(body_model)))
                 if "smplx.body_models.SMPL'" in str(type(body_model)):
                     wrist_pose = torch.zeros([body_pose.shape[0], 6], dtype=body_pose.dtype, device=body_pose.device)
                     body_pose = torch.cat([body_pose, wrist_pose], dim=1)
 
                 result['body_pose'] = body_pose.detach().cpu().numpy()
+            result['final_loss_val'] = final_loss_val
 
             results.append({'loss': final_loss_val,
                             'result': result})
@@ -676,9 +688,10 @@ def fit_single_frame(img,
 
 
     if save_meshes or visualize:
-        body_pose = vposer.decode(
-            pose_embedding,
-            output_type='aa').view(1, -1) if use_vposer else None
+        # Patrick: This doesn't take the best result
+        pose_embedding = torch.Tensor(results[min_idx]['result']['pose_embedding']).to(device=device)
+
+        body_pose = vposer.decode(pose_embedding, output_type='aa').view(1, -1) if use_vposer else None
 
         model_type = kwargs.get('model_type', 'smpl')
         append_wrists = model_type == 'smpl' and use_vposer
