@@ -48,6 +48,7 @@ from psbody.mesh import Mesh
 import scipy.sparse as sparse
 from models.betanet import FC
 import global_vars
+import math
 
 
 def fit_single_frame(img,
@@ -252,7 +253,28 @@ def fit_single_frame(img,
         body_mean_pose = torch.zeros([batch_size, vposer_latent_dim], dtype=dtype)
     else:
         # body_mean_pose = body_pose_prior.get_mean().detach().cpu()
-        body_mean_pose = torch.zeros([batch_size, 69], dtype=dtype)
+        # body_mean_pose = torch.zeros([batch_size, 69], dtype=dtype)
+
+        mean_body =  np.array([[-2.33263850e-01,  1.35460928e-01,  2.94471830e-01, -3.22930813e-01,
+                                -4.73931670e-01, -2.67531037e-01,  7.12558180e-02,  7.89440796e-03,
+                                8.67700949e-03,  1.05982251e-01,  2.79584467e-01, -7.04243258e-02,
+                                3.61106455e-01, -5.87305248e-01,  1.10897996e-01, -1.68918714e-01,
+                                -4.60174456e-02,  3.28684039e-02,  5.80525696e-01, -5.11317095e-03,
+                                -1.57546505e-01,  5.85777402e-01, -8.94948393e-02,  2.24680841e-01,
+                                1.55473784e-01,  5.38146123e-04,  4.30279821e-02, -4.68525589e-02,
+                                7.75185153e-02,  7.82282930e-03,  6.74356073e-02,  4.09710407e-02,
+                                -3.60425897e-02, -4.71813440e-01,  5.02379127e-02,  2.02309843e-02,
+                                5.29680364e-02,  1.68510173e-02,  2.25090146e-01, -4.52307612e-02,
+                                7.72185996e-02, -2.17333943e-01,  3.30020368e-01,  4.21866514e-02,
+                                7.15153441e-02,  3.05950731e-01, -3.63454908e-01, -1.28235269e+00,
+                                5.09610713e-01,  4.65482563e-01,  1.20263052e+00,  5.56594551e-01,
+                                -2.24000740e+00,  3.83565158e-01,  5.31355202e-01,  2.21637583e+00,
+                                -5.63146770e-01, -3.01193684e-01, -4.31942672e-01,  6.85038209e-01,
+                                3.61178756e-01,  2.76136428e-01, -2.64388829e-01,  0.00000000e+00,
+                                0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+                                0.00000000e+00]])
+        body_mean_pose = torch.tensor(mean_body, dtype=dtype)
+
 
     betanet = None
     if height is not None:
@@ -587,6 +609,7 @@ def fit_single_frame(img,
             orient = orientations[or_idx]
             print('Trying orientation', or_idx, 'of', len(orientations), orient)
             opt_start = time.time()
+            or_idx += 1
 
             new_params = defaultdict(transl=body_transl,
                                      global_orient=orient,
@@ -649,7 +672,7 @@ def fit_single_frame(img,
                     use_vposer=use_vposer)
 
                 print('Final loss val', final_loss_val)
-                if final_loss_val is None or np.isnan(final_loss_val):
+                if final_loss_val is None or math.isnan(final_loss_val) or math.isnan(global_vars.cur_loss_dict['total']):
                     break
 
                 if interactive:
@@ -660,9 +683,9 @@ def fit_single_frame(img,
                         tqdm.write('Stage {:03d} done after {:.4f} seconds'.format(
                             opt_idx, elapsed))
 
-            if final_loss_val is None or np.isnan(final_loss_val):
+            if final_loss_val is None or math.isnan(final_loss_val) or math.isnan(global_vars.cur_loss_dict['total']):
                 print('Optimization FAILURE, retrying')
-                orientations.append(orientations[or_idx] * 0.9)
+                orientations.append(orientations[or_idx-1] * 0.9)
                 continue
 
             if interactive:
@@ -671,7 +694,6 @@ def fit_single_frame(img,
                 elapsed = time.time() - opt_start
                 tqdm.write('Body fitting Orientation {} done after {:.4f} seconds'.format(or_idx, elapsed))
                 tqdm.write('Body final loss val = {:.5f}'.format(final_loss_val))
-            or_idx += 1
 
             # Get the result of the fitting process
             # Store in it the errors list in order to compare multiple
@@ -690,6 +712,7 @@ def fit_single_frame(img,
 
                 result['body_pose'] = body_pose.detach().cpu().numpy()
             result['final_loss_val'] = final_loss_val
+            result['loss_dict'] = global_vars.cur_loss_dict
 
             results.append({'loss': final_loss_val,
                             'result': result})
@@ -705,7 +728,8 @@ def fit_single_frame(img,
 
     if save_meshes or visualize:
         # Patrick: This doesn't take the best result
-        pose_embedding = torch.Tensor(results[min_idx]['result']['pose_embedding']).to(device=device)
+        if use_vposer:
+            pose_embedding = torch.Tensor(results[min_idx]['result']['pose_embedding']).to(device=device)
 
         body_pose = vposer.decode(pose_embedding, output_type='aa').view(1, -1) if use_vposer else None
 

@@ -41,6 +41,7 @@ from camera import create_camera
 from prior import create_prior
 
 from models.betanet import FC
+import global_vars
 
 torch.backends.cudnn.enabled = False
 
@@ -230,6 +231,10 @@ def main(**args):
     for idx, data in enumerate(dataset_obj):
         if idx < args['skip']:     # For visualization, skip to the interesting ones
             continue
+
+        split_path = data['img_path'].split('/')
+        global_vars.cur_participant = int(''.join(c for c in split_path[2] if c.isdigit()))
+        global_vars.cur_sample = int(''.join(c for c in split_path[4] if c.isdigit()))
 
         img = data['img']
         fn = data['fn']

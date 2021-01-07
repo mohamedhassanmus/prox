@@ -39,6 +39,8 @@ def get_smpl(pkl_data, json_data):
 
     smpl_trimesh = trimesh.Trimesh(vertices=np.asarray(smpl_vertices_unposed), faces=model.faces)
     print('Est weight from volume', smpl_trimesh.volume * 1.03 * 1000)
+    # print('Pose embedding', pkl_data['pose_embedding'])
+    print('Body pose', np.array2string(pkl_data['body_pose'], separator=', '))
 
     smpl_o3d = o3d.TriangleMesh()
     smpl_o3d.triangles = o3d.Vector3iVector(model.faces)

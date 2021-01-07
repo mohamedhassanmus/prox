@@ -40,6 +40,8 @@ def create_prior(prior_type, **kwargs):
         return L2Prior(**kwargs)
     elif prior_type == 'angle':
         return SMPLifyAnglePrior(**kwargs)
+    elif prior_type == 'smpl_limit':
+        return SMPLLimitPrior(**kwargs)
     elif prior_type == 'none' or prior_type is None:
         # Don't use any pose prior
         def no_prior(*args, **kwargs):
@@ -48,6 +50,102 @@ def create_prior(prior_type, **kwargs):
     else:
         raise ValueError('Prior {}'.format(prior_type) + ' is not implemented')
     return prior
+
+
+class SMPLLimitPrior(nn.Module):
+    def __init__(self, dtype=torch.float32, **kwargs):
+        super(SMPLLimitPrior, self).__init__()
+
+        # axang_limits = torch.Tensor(
+        # axang_limits = \
+        #     np.array([[-1.5793940868065197, 0.3097956806], [-0.5881754611, 0.5689768556], [-0.5323249722, 0.6736965222],
+        #               [-1.5793940868065197, 0.3097956806], [-0.5689768556, -0.5881754611], [-0.6736965222, 0.5323249722],
+        #               [-np.pi / 3, np.pi / 3], [-np.pi / 36, np.pi / 36], [-np.pi / 36, np.pi / 36],
+        #               [-0.02268926111, 2.441713561], [-0.01, 0.01], [-0.01, 0.01],  # knee
+        #               [-0.02268926111, 2.441713561], [-0.01, 0.01], [-0.01, 0.01],
+        #               [-np.pi / 3, np.pi / 3], [-np.pi / 36, np.pi / 36], [-np.pi / 36, np.pi / 36],
+        #               [-np.pi / 6, np.pi / 6], [-np.pi / 6, np.pi / 6], [-np.pi / 6, np.pi / 6],
+        #               # ankle, pi/36 or 5 deg
+        #               [-np.pi / 6, np.pi / 6], [-np.pi / 6, np.pi / 6], [-np.pi / 6, np.pi / 6],
+        #               # ankle, pi/36 or 5 deg
+        #               [-np.pi / 3, np.pi / 3], [-np.pi / 36, np.pi / 36], [-np.pi / 36, np.pi / 36],
+        #               [-0.01, 0.01], [-0.01, 0.01], [-0.01, 0.01],  # foot
+        #               [-0.01, 0.01], [-0.01, 0.01], [-0.01, 0.01],  # foot
+        #               [-np.pi / 3, np.pi / 3], [-np.pi / 36, np.pi / 36], [-np.pi / 36, np.pi / 36],  # neck
+        #               [-1.551596394 * 1 / 3, 2.206094311 * 1 / 3],
+        #               [-2.455676183 * 1 / 3, 0.7627082389 * 1 / 3],
+        #               [-1.570795 * 1 / 3, 2.188641033 * 1 / 3],
+        #               [-1.551596394 * 1 / 3, 2.206094311 * 1 / 3],
+        #               [-0.7627082389 * 1 / 3, 2.455676183 * 1 / 3],
+        #               [-2.188641033 * 1 / 3, 1.570795 * 1 / 3],
+        #               [-np.pi / 3, np.pi / 3], [-np.pi / 36, np.pi / 36], [-np.pi / 36, np.pi / 36],  # head
+        #               [-1.551596394 * 2 / 3, 2.206094311 * 2 / 3],
+        #               [-2.455676183 * 2 / 3, 0.7627082389 * 2 / 3],
+        #               [-1.570795 * 2 / 3, 2.188641033 * 2 / 3],
+        #               [-1.551596394 * 2 / 3, 2.206094311 * 2 / 3],
+        #               [-0.7627082389 * 2 / 3, 2.455676183 * 2 / 3],
+        #               [-2.188641033 * 2 / 3, 1.570795 * 2 / 3],
+        #               [-0.01, 0.01], [-2.570867817, 0.04799651389], [-0.01, 0.01],  # elbow
+        #               [-0.01, 0.01], [-0.04799651389, 2.570867817], [-0.01, 0.01],  # elbow
+        #               [-np.pi / 6, np.pi / 6], [-np.pi / 6, np.pi / 6], [-np.pi / 6, np.pi / 6],
+        #               # wrist, pi/36 or 5 deg
+        #               [-np.pi / 6, np.pi / 6], [-np.pi / 6, np.pi / 6], [-np.pi / 6, np.pi / 6],
+        #               # wrist, pi/36 or 5 deg
+        #               [-0.01, 0.01], [-0.01, 0.01], [-0.01, 0.01],  # hand
+        #               [-0.01, 0.01], [-0.01, 0.01], [-0.01, 0.01]])#).type(dtype)
+
+        # Joint reference here https://github.com/gulvarol/smplpytorch
+
+        axang_limits_patrick = np.array(    # In degrees
+            [[-90.5, 17.7], [-33.7, 32.6], [-30.5, 38.6],   # Hip L
+             [-90.5, 17.7], [-32.6, -33.7], [-38.6, 30.5],  # Hip R
+             [-60., 60.], [-5., 5.], [-5., 5.],             # Lower back
+             [-1.3, 139.9], [-0.6, 0.6], [-0.6, 0.6],   # Knee L
+             [-1.3, 139.9], [-0.6, 0.6], [-0.6, 0.6],   # Knee R
+             [-60., 60.], [-5., 5.], [-5., 5.],         # Mid back
+             [-30., 30.], [-30., 30.], [-30., 30.],     # Ankle L
+             [-30., 30.], [-30., 30.], [-30., 30.],     # Ankle R
+             [-60., 60.], [-5., 5.], [-5., 5.],         # Upper back
+             [-0.6, 0.6], [-0.6, 0.6], [-0.6, 0.6],     # Foot L?
+             [-0.6, 0.6], [-0.6, 0.6], [-0.6, 0.6],     # Foot R?
+             [-60., 60.], [-5., 5.], [-5., 5.],         # Lower neck
+             [-29.6, 42.1], [-46.9, 14.6], [-30., 41.8],    # Inner shoulder L
+             [-29.6, 42.1], [-14.6, 46.9], [-41.8, 30.],    # Inner shoulder R
+             [-60., 60.], [-5., 5.], [-5., 5.],         # Upper neck
+             [-59.3, 84.3], [-93.8, 29.1], [-60., 83.6],    # Outer shoulder L
+             [-59.3, 84.3], [-29.1, 93.8], [-83.6, 60.],    # Outer shoulder R
+             [-0.6, 0.6], [-147.3, 2.7], [-0.6, 0.6],       # Elbow L
+             [-0.6, 0.6], [-2.7, 147.3], [-0.6, 0.6],       # Elbow R
+             [-30., 30.], [-30., 30.], [-30., 30.],         # Wrist L
+             [-30., 30.], [-30., 30.], [-30., 30.],         # Wrist R
+             [-0.6, 0.6], [-0.6, 0.6], [-0.6, 0.6],         # Fingers L?
+             [-0.6, 0.6], [-0.6, 0.6], [-0.6, 0.6]]         # Fingers R?
+        )
+        axang_limits = torch.tensor(axang_limits_patrick / 180 * np.pi, dtype=dtype)
+
+        # print(np.array2string(axang_limits * 180 / np.pi, separator=', ', precision=1))
+
+        axang_mean = axang_limits.detach().mean(1)
+        axang_var = torch.abs(axang_limits[:, 1] - axang_mean)
+        self.register_buffer('axang_mean', axang_mean)
+        self.register_buffer('axang_var', axang_var)
+
+    def forward(self, pose, with_global_pose=False):
+        ''' Returns the angle prior loss for the given pose
+
+        Args:
+            pose: (Bx[23 + 1] * 3) torch tensor with the axis-angle
+            representation of the rotations of the joints of the SMPL model.
+        Kwargs:
+            with_global_pose: Whether the pose vector also contains the global
+            orientation of the SMPL model. If not then the indices must be
+            corrected.
+        Returns:
+            A sze (B) tensor containing the angle prior loss for each element
+            in the batch.
+        '''
+        z_scores = (pose - self.axang_mean) / self.axang_var
+        return torch.sum(z_scores.pow(2)) / 10
 
 
 class SMPLifyAnglePrior(nn.Module):

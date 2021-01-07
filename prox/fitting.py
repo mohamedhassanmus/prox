@@ -36,6 +36,7 @@ distChamfer = ext.chamferDist()
 
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+import global_vars
 
 @torch.no_grad()
 def guess_init(model,
@@ -142,6 +143,7 @@ class FittingMonitor(object):
                 self.vis_o3d.create_window()
                 self.body_o3d = o3d.TriangleMesh()
                 self.scan = o3d.PointCloud()
+                self.lbl_stage = o3d.PointCloud()
 
                 self.joints_opt = []
                 self.joints_gt = []
@@ -312,6 +314,11 @@ class FittingMonitor(object):
                         self.scan.colors = o3d.Vector3dVector(np.tile([1.00, 0.75, 0.80], [N, 1]))
                         self.vis_o3d.add_geometry(self.scan)
 
+                    lbl = 'Subj {} Sample {}'.format(global_vars.cur_participant, global_vars.cur_sample)
+                    self.vis_o3d.add_geometry(utils.text_3d(lbl, (0, -1.5, 2), direction=(0.01, 0, -1), degree=-90, font_size=200, density=0.15))
+
+                    self.vis_o3d.add_geometry(self.lbl_stage)
+
                     self.vis_o3d.update_geometry()
                     self.vis_o3d.poll_events()
                     self.vis_o3d.update_renderer()
@@ -322,6 +329,10 @@ class FittingMonitor(object):
                         self.body_o3d.vertex_normals = o3d.Vector3dVector([])
                         self.body_o3d.triangle_normals = o3d.Vector3dVector([])
                         self.body_o3d.compute_vertex_normals()
+
+                        lbl2 = 'Orient {} Stage {}'.format(global_vars.cur_orientation, global_vars.cur_opt_stage)
+                        lbl2_pcd = utils.text_3d(lbl2, (0, -1.7, 2), direction=(0.01, 0, -1), degree=-90, font_size=200, density=0.15)
+                        self.lbl_stage.points = lbl2_pcd.points
 
                         # Visualize SMPL joints - Patrick
                         for i in range(25):
@@ -674,13 +685,10 @@ class SMPLifyLoss(nn.Module):
             if body_sdf.lt(0).sum().item() < 1:
                 sdf_penetration_loss = torch.tensor(0.0, dtype=joint_loss.dtype, device=joint_loss.device)
             else:
-                if sdf_normals is None:
-                    sdf_penetration_loss = self.sdf_penetration_weight * (body_sdf[body_sdf < 0].unsqueeze(dim=-1).abs()).pow(2).sum(dim=-1).sqrt().sum()
-                else:
-                    contact_mask = body_sdf < 0
-                    sel_sdf = body_sdf[contact_mask].unsqueeze(dim=-1).abs()
-                    sel_normal = sdf_normals[0, body_sdf.view(-1) < 0, :]   # Will not work batched
-                    sdf_penetration_loss = self.sdf_penetration_weight * (sel_sdf * sel_normal).pow(2).sum(dim=-1).sqrt().sum()
+                contact_mask = body_sdf < 0
+                sel_sdf = body_sdf[contact_mask].unsqueeze(dim=-1).abs()
+                sel_normal = sdf_normals[0, body_sdf.view(-1) < 0, :]   # Will not work batched
+                sdf_penetration_loss = self.sdf_penetration_weight * (sel_sdf * sel_normal).pow(2).sum(dim=-1).sqrt().sum()
 
 
         # Compute the contact loss
@@ -731,6 +739,14 @@ class SMPLifyLoss(nn.Module):
                       jaw_prior_loss + expression_loss +
                       left_hand_prior_loss + right_hand_prior_loss + m2s_dist + s2m_dist
                       + sdf_penetration_loss + contact_loss + physical_loss)
+
+        global_vars.cur_loss_dict = {'total': total_loss.item(), 'joint': joint_loss.item(),
+                                     's2m': torch.tensor(s2m_dist).item(), 'm2s': torch.tensor(m2s_dist).item(),
+                                     'pprior': pprior_loss.item(), 'shape': shape_loss.item(),
+                                     'angle_prior': angle_prior_loss.item(), 'pen': torch.tensor(pen_loss).item(),
+                                     'sdf_penetration': torch.tensor(sdf_penetration_loss).item(), 'contact': torch.tensor(contact_loss).item(),
+                                     'physical': physical_loss.item()}
+
         if visualize:
             # print('total:{:.2f}, joint_loss:{:0.2f},  s2m:{:0.2f}, m2s:{:0.2f}, penetration:{:0.2f}, contact:{:0.2f}'.
             #       format(total_loss.item(), joint_loss.item() ,torch.tensor(s2m_dist).item(),
