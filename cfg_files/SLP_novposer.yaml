@@ -22,7 +22,7 @@ flip: False
 camera_mode: 'fixed'
 output_folder: './slp_fits'
 
-side_view_thsh: 40 # If shoulders are narrower than this, try both orientations
+side_view_thsh: 55 # If shoulders are narrower than this, try both orientations
 
 use_vposer: False
 vposer_ckpt: "models/vposer_v1_0/"
@@ -54,8 +54,8 @@ sdf_penetration_weights:
     - 0.0
     - 0.0
     - 0.0
-    - 1e2
-    - 1.0
+    - 200
+    - 100
 
 trans_opt_stages:
     - 2
@@ -69,7 +69,7 @@ read_mask: True
 # Depth
 init_mode: 'scan'   # This picks the mean of the depth image, but since we 'dont have this', lets just try something
 m2s: True
-rho_m2s: 5e-1
+rho_m2s: 10e-1   # Approximately controls the "range" of the loss function
 m2s_weights:
     - 1.0
     - 1.0
@@ -80,7 +80,7 @@ m2s_weights:
     - 50e2
 
 s2m: True
-rho_s2m: 2e-1
+rho_s2m: 4e-1
 s2m_weights:
     - 1.0
     - 1.0
@@ -138,7 +138,7 @@ use_face: False
 flat_hand_mean: False
 # The number of mixture components for the pose prior
 num_gaussians: 8
-body_prior_type: 'l2'
+body_prior_type: 'smpl_limit'
 left_hand_prior_type: l2
 right_hand_prior_type: l2
 jaw_prior_type: 'l2'
@@ -156,7 +156,7 @@ max_collisions: 128
 optim_type: 'lbfgsls'
 ftol: 1e-9
 gtol: 1e-9
-lr: 0.2
+lr: 0.1
 # Max number of optimization iterations
 maxiters: 30
 interactive: True
@@ -174,10 +174,10 @@ coll_loss_weights:
     - 0.0
     - 0.0
     - 0.0
+    - 0.0
     - 0.0002
-    - 0.0002
-    - 0.002
-    - 0.02
+    - 0.1
+    - 0.2
 expr_weights:
     - 1.0e2
     - 5.0e1
