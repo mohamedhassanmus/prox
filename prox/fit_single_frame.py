@@ -47,6 +47,7 @@ from human_body_prior.tools.model_loader import load_vposer
 from psbody.mesh import Mesh
 import scipy.sparse as sparse
 from models.betanet import FC
+import global_vars
 
 
 def fit_single_frame(img,
@@ -228,9 +229,19 @@ def fit_single_frame(img,
     use_vposer = kwargs.get('use_vposer', True)
     vposer, pose_embedding = [None, ] * 2
     if use_vposer:
-        pose_embedding = torch.zeros([batch_size, 32],
-                                     dtype=dtype, device=device,
-                                     requires_grad=True)
+        # pose_embedding = torch.zeros([batch_size, 32],
+        #                              dtype=dtype, device=device,
+        #                              requires_grad=True)
+
+        # Patrick: hack to set default body pose to something more sleep-y
+        mean_body = np.array([[ 0.19463745,  1.6240447,   0.6890624,   0.19186097,  0.08003145, -0.04189298,
+                       3.450903,   -0.29570094,  0.25072002, -1.1879578,   0.33350763,  0.23568614,
+                       0.38122794, -2.1258948,   0.2910664,   2.2407222,  -0.5400814,  -0.95984083,
+                      -1.2880017,   1.1122228,   0.7411389,  -0.2265636,  -4.8202057,  -1.950323,
+                      -0.28771818, -1.9282387,   0.9928907,  -0.27183488, -0.55805033,  0.04047768,
+                      -0.537362,    0.65770334]])
+
+        pose_embedding = torch.tensor(mean_body, dtype=dtype, device=device, requires_grad=True)
 
         vposer_ckpt = osp.expandvars(vposer_ckpt)
         vposer, _ = load_vposer(vposer_ckpt, vp_model='snapshot')
@@ -514,7 +525,6 @@ def fit_single_frame(img,
         try_both_orient = shoulder_dist.item() < side_view_thsh
 
 
-
         camera_optimizer, camera_create_graph = optim_factory.create_optimizer(
             camera_opt_params,
             **kwargs)
@@ -573,6 +583,7 @@ def fit_single_frame(img,
         # for or_idx, orient in enumerate(orientations):
         or_idx = 0
         while or_idx < len(orientations):
+            global_vars.cur_orientation = or_idx
             orient = orientations[or_idx]
             print('Trying orientation', or_idx, 'of', len(orientations), orient)
             opt_start = time.time()
@@ -584,8 +595,11 @@ def fit_single_frame(img,
             if use_vposer:
                 with torch.no_grad():
                     pose_embedding.fill_(0)
+                    pose_embedding += torch.tensor(mean_body, dtype=dtype, device=device)
 
             for opt_idx, curr_weights in enumerate(tqdm(opt_weights, desc='Stage')):
+                global_vars.cur_opt_stage = opt_idx
+
                 if opt_idx not in trans_opt_stages:
                     body_model.transl.requires_grad = False
                 else:

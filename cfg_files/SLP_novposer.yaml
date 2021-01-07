@@ -156,7 +156,7 @@ max_collisions: 128
 optim_type: 'lbfgsls'
 ftol: 1e-9
 gtol: 1e-9
-lr: 1.0
+lr: 0.2
 # Max number of optimization iterations
 maxiters: 30
 interactive: True
