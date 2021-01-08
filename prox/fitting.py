@@ -168,7 +168,7 @@ class FittingMonitor(object):
         mesh_sphere.paint_uniform_color(color)
         mean = np.asarray(mesh_sphere.vertices).mean(axis=0)
         diff = np.asarray(pos) - mean
-        print(diff, type(diff))
+        # print(diff, type(diff))
         mesh_sphere.translate(diff)
         return mesh_sphere
 
@@ -207,6 +207,7 @@ class FittingMonitor(object):
         append_wrists = self.model_type == 'smpl' and use_vposer
         prev_loss = None
         for n in range(self.maxiters):
+            global_vars.cur_opt_step = n
             loss = optimizer.step(closure)
 
             if torch.isnan(loss).sum() > 0:
@@ -563,6 +564,8 @@ class SMPLifyLoss(nn.Module):
         # print('Height {} est {}'.format(self.height, batch_height_est.detach().item()))
         # print('Weight {} est {}'.format(self.weight, batch_weight_est.detach().item()))
         # print('Cur gender flag', tmp_gender)
+        global_vars.cur_weight = batch_weight_est.item()
+        global_vars.cur_height = batch_height_est.item()
         physical_loss = F.mse_loss(self.weight, batch_weight_est) * self.weight_w + F.mse_loss(self.height, batch_height_est) * self.height_w
 
 
@@ -747,18 +750,24 @@ class SMPLifyLoss(nn.Module):
                                      'sdf_penetration': torch.tensor(sdf_penetration_loss).item(), 'contact': torch.tensor(contact_loss).item(),
                                      'physical': physical_loss.item()}
 
-        if visualize:
+        if visualize: # and global_vars.cur_opt_step % 10 == 0:
             # print('total:{:.2f}, joint_loss:{:0.2f},  s2m:{:0.2f}, m2s:{:0.2f}, penetration:{:0.2f}, contact:{:0.2f}'.
             #       format(total_loss.item(), joint_loss.item() ,torch.tensor(s2m_dist).item(),
             #              torch.tensor(m2s_dist).item() ,torch.tensor(sdf_penetration_loss).item(), torch.tensor(contact_loss).item()))
             # print('pprior:{:.2f}, shape:{:.2f}, angle_pri:{:.2f}, pen:{:.2f}, jaw:{:.2f}, expres:{:.2f}'.format(
             #     pprior_loss.item(), shape_loss.item(), angle_prior_loss.item(),
             #     torch.tensor(pen_loss).item(), torch.tensor(jaw_prior_loss).item(), torch.tensor(expression_loss).item()))
+            print('tot:{:.0f}'.format(global_vars.cur_loss_dict['total']), end=' ')
+            for key in global_vars.cur_loss_dict.keys():
+                if key == 'tot' or global_vars.cur_loss_dict[key] == 0:
+                    continue
+                print('{}:{:.0f}'.format(key, global_vars.cur_loss_dict[key]), end=' ')
+            print()
 
-            print('tot:{:.2f}, j_loss:{:0.2f}, s2m:{:0.2f}, m2s:{:0.2f}, pprior:{:.2f}, shape:{:.2f}, ang_pri:{:.2f}, pen:{:.2f}, phys{:.2f}, sdf{:.2f}'.
-                  format(total_loss.item(), joint_loss.item(), torch.tensor(s2m_dist).item(),
-                         torch.tensor(m2s_dist).item(), pprior_loss.item(), shape_loss.item(),
-                         angle_prior_loss.item(), torch.tensor(pen_loss).item(), physical_loss.item(), torch.tensor(sdf_penetration_loss).item()))
+            # print('tot:{:.2f}, j_loss:{:0.2f}, s2m:{:0.2f}, m2s:{:0.2f}, pprior:{:.2f}, shape:{:.2f}, ang_pri:{:.2f}, pen:{:.2f}, phys{:.2f}, sdf{:.2f}'.
+            #       format(total_loss.item(), joint_loss.item(), torch.tensor(s2m_dist).item(),
+            #              torch.tensor(m2s_dist).item(), pprior_loss.item(), shape_loss.item(),
+            #              angle_prior_loss.item(), torch.tensor(pen_loss).item(), physical_loss.item(), torch.tensor(sdf_penetration_loss).item()))
         return total_loss
 
 

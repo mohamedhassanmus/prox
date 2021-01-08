@@ -58,7 +58,7 @@ class Projection():
             return {'v': []}
 
         points = self.unproject_depth_image(depth_im, self.depth_cam).reshape(-1, 3)
-        print('points', points)
+        # print('points', points)
         colors = np.tile(default_color, [points.shape[0], 1])
 
         uvs = self.projectPoints(points, self.color_cam)

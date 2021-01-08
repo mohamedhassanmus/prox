@@ -29,6 +29,7 @@ import numpy as np
 
 import torch
 import torch.nn as nn
+import joint_limits
 
 DEFAULT_DTYPE = torch.float32
 
@@ -56,72 +57,9 @@ class SMPLLimitPrior(nn.Module):
     def __init__(self, dtype=torch.float32, **kwargs):
         super(SMPLLimitPrior, self).__init__()
 
-        # axang_limits = torch.Tensor(
-        # axang_limits = \
-        #     np.array([[-1.5793940868065197, 0.3097956806], [-0.5881754611, 0.5689768556], [-0.5323249722, 0.6736965222],
-        #               [-1.5793940868065197, 0.3097956806], [-0.5689768556, -0.5881754611], [-0.6736965222, 0.5323249722],
-        #               [-np.pi / 3, np.pi / 3], [-np.pi / 36, np.pi / 36], [-np.pi / 36, np.pi / 36],
-        #               [-0.02268926111, 2.441713561], [-0.01, 0.01], [-0.01, 0.01],  # knee
-        #               [-0.02268926111, 2.441713561], [-0.01, 0.01], [-0.01, 0.01],
-        #               [-np.pi / 3, np.pi / 3], [-np.pi / 36, np.pi / 36], [-np.pi / 36, np.pi / 36],
-        #               [-np.pi / 6, np.pi / 6], [-np.pi / 6, np.pi / 6], [-np.pi / 6, np.pi / 6],
-        #               # ankle, pi/36 or 5 deg
-        #               [-np.pi / 6, np.pi / 6], [-np.pi / 6, np.pi / 6], [-np.pi / 6, np.pi / 6],
-        #               # ankle, pi/36 or 5 deg
-        #               [-np.pi / 3, np.pi / 3], [-np.pi / 36, np.pi / 36], [-np.pi / 36, np.pi / 36],
-        #               [-0.01, 0.01], [-0.01, 0.01], [-0.01, 0.01],  # foot
-        #               [-0.01, 0.01], [-0.01, 0.01], [-0.01, 0.01],  # foot
-        #               [-np.pi / 3, np.pi / 3], [-np.pi / 36, np.pi / 36], [-np.pi / 36, np.pi / 36],  # neck
-        #               [-1.551596394 * 1 / 3, 2.206094311 * 1 / 3],
-        #               [-2.455676183 * 1 / 3, 0.7627082389 * 1 / 3],
-        #               [-1.570795 * 1 / 3, 2.188641033 * 1 / 3],
-        #               [-1.551596394 * 1 / 3, 2.206094311 * 1 / 3],
-        #               [-0.7627082389 * 1 / 3, 2.455676183 * 1 / 3],
-        #               [-2.188641033 * 1 / 3, 1.570795 * 1 / 3],
-        #               [-np.pi / 3, np.pi / 3], [-np.pi / 36, np.pi / 36], [-np.pi / 36, np.pi / 36],  # head
-        #               [-1.551596394 * 2 / 3, 2.206094311 * 2 / 3],
-        #               [-2.455676183 * 2 / 3, 0.7627082389 * 2 / 3],
-        #               [-1.570795 * 2 / 3, 2.188641033 * 2 / 3],
-        #               [-1.551596394 * 2 / 3, 2.206094311 * 2 / 3],
-        #               [-0.7627082389 * 2 / 3, 2.455676183 * 2 / 3],
-        #               [-2.188641033 * 2 / 3, 1.570795 * 2 / 3],
-        #               [-0.01, 0.01], [-2.570867817, 0.04799651389], [-0.01, 0.01],  # elbow
-        #               [-0.01, 0.01], [-0.04799651389, 2.570867817], [-0.01, 0.01],  # elbow
-        #               [-np.pi / 6, np.pi / 6], [-np.pi / 6, np.pi / 6], [-np.pi / 6, np.pi / 6],
-        #               # wrist, pi/36 or 5 deg
-        #               [-np.pi / 6, np.pi / 6], [-np.pi / 6, np.pi / 6], [-np.pi / 6, np.pi / 6],
-        #               # wrist, pi/36 or 5 deg
-        #               [-0.01, 0.01], [-0.01, 0.01], [-0.01, 0.01],  # hand
-        #               [-0.01, 0.01], [-0.01, 0.01], [-0.01, 0.01]])#).type(dtype)
+        self.range_allow = 0.7
 
-        # Joint reference here https://github.com/gulvarol/smplpytorch
-
-        axang_limits_patrick = np.array(    # In degrees
-            [[-90.5, 17.7], [-33.7, 32.6], [-30.5, 38.6],   # Hip L
-             [-90.5, 17.7], [-32.6, -33.7], [-38.6, 30.5],  # Hip R
-             [-60., 60.], [-5., 5.], [-5., 5.],             # Lower back
-             [-1.3, 139.9], [-0.6, 0.6], [-0.6, 0.6],   # Knee L
-             [-1.3, 139.9], [-0.6, 0.6], [-0.6, 0.6],   # Knee R
-             [-60., 60.], [-5., 5.], [-5., 5.],         # Mid back
-             [-30., 30.], [-30., 30.], [-30., 30.],     # Ankle L
-             [-30., 30.], [-30., 30.], [-30., 30.],     # Ankle R
-             [-60., 60.], [-5., 5.], [-5., 5.],         # Upper back
-             [-0.6, 0.6], [-0.6, 0.6], [-0.6, 0.6],     # Foot L?
-             [-0.6, 0.6], [-0.6, 0.6], [-0.6, 0.6],     # Foot R?
-             [-60., 60.], [-5., 5.], [-5., 5.],         # Lower neck
-             [-29.6, 42.1], [-46.9, 14.6], [-30., 41.8],    # Inner shoulder L
-             [-29.6, 42.1], [-14.6, 46.9], [-41.8, 30.],    # Inner shoulder R
-             [-60., 60.], [-5., 5.], [-5., 5.],         # Upper neck
-             [-59.3, 84.3], [-93.8, 29.1], [-60., 83.6],    # Outer shoulder L
-             [-59.3, 84.3], [-29.1, 93.8], [-83.6, 60.],    # Outer shoulder R
-             [-0.6, 0.6], [-147.3, 2.7], [-0.6, 0.6],       # Elbow L
-             [-0.6, 0.6], [-2.7, 147.3], [-0.6, 0.6],       # Elbow R
-             [-30., 30.], [-30., 30.], [-30., 30.],         # Wrist L
-             [-30., 30.], [-30., 30.], [-30., 30.],         # Wrist R
-             [-0.6, 0.6], [-0.6, 0.6], [-0.6, 0.6],         # Fingers L?
-             [-0.6, 0.6], [-0.6, 0.6], [-0.6, 0.6]]         # Fingers R?
-        )
-        axang_limits = torch.tensor(axang_limits_patrick / 180 * np.pi, dtype=dtype)
+        axang_limits = torch.tensor(joint_limits.axang_limits_patrick / 180 * np.pi, dtype=dtype)
 
         # print(np.array2string(axang_limits * 180 / np.pi, separator=', ', precision=1))
 
@@ -144,8 +82,9 @@ class SMPLLimitPrior(nn.Module):
             A sze (B) tensor containing the angle prior loss for each element
             in the batch.
         '''
-        z_scores = (pose - self.axang_mean) / self.axang_var
-        return torch.sum(z_scores.pow(2)) / 10
+        z_scores = torch.abs((pose - self.axang_mean) / self.axang_var)
+        z_scores = torch.max(z_scores - self.range_allow, 0)
+        return torch.sum(z_scores.pow(2))
 
 
 class SMPLifyAnglePrior(nn.Module):

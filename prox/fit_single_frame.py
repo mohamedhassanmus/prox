@@ -713,6 +713,8 @@ def fit_single_frame(img,
                 result['body_pose'] = body_pose.detach().cpu().numpy()
             result['final_loss_val'] = final_loss_val
             result['loss_dict'] = global_vars.cur_loss_dict
+            result['betanet_weight'] = global_vars.cur_weight
+            result['betanet_height'] = global_vars.cur_height
 
             results.append({'loss': final_loss_val,
                             'result': result})

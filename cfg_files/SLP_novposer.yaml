@@ -165,11 +165,11 @@ visualize: False
 body_pose_prior_weights:
     - 40
     - 10
-    - 4
-    - 4
-    - 4
-    - 4
-    - 4
+    - 10
+    - 10
+    - 10
+    - 10
+    - 10
 coll_loss_weights:
     - 0.0
     - 0.0
