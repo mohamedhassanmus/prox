@@ -22,7 +22,7 @@ FITS_PATH = '/home/patrick/bed/prox/slp_fits'
 def get_smpl(pkl_data, json_data):
     gender = json_data['people'][0]['gender_gt']
     print('Target height {}, weight {}'.format(json_data['people'][0]['height'], json_data['people'][0]['weight']))
-    pkl_data['transl'][0, 0] += 2
+    # pkl_data['transl'][0, 0] += 2
 
     model = smplx.create('models', model_type='smpl', gender=gender)
     output = model(betas=torch.Tensor(pkl_data['betas']), body_pose=torch.Tensor(pkl_data['body_pose']), transl=torch.Tensor(pkl_data['transl']),
@@ -46,9 +46,15 @@ def get_smpl(pkl_data, json_data):
     smpl_o3d.triangles = o3d.Vector3iVector(model.faces)
     smpl_o3d.vertices = o3d.Vector3dVector(smpl_vertices)
     smpl_o3d.compute_vertex_normals()
-    smpl_o3d.paint_uniform_color([1.0, 0.0, 0.0])
+    # smpl_o3d.paint_uniform_color([0.3, 0.3, 0.3])
 
-    return smpl_vertices, model.faces, smpl_o3d
+    smpl_o3d_2 = o3d.TriangleMesh()
+    smpl_o3d_2.triangles = o3d.Vector3iVector(model.faces)
+    smpl_o3d_2.vertices = o3d.Vector3dVector(smpl_vertices + np.array([1.5, 0, 0]))
+    smpl_o3d_2.compute_vertex_normals()
+    smpl_o3d_2.paint_uniform_color([0.7, 0.3, 0.3])
+
+    return smpl_vertices, model.faces, smpl_o3d, smpl_o3d_2
 
 
 def get_depth(idx):
@@ -102,12 +108,12 @@ def view_fit(sample, idx):
     pkl_path = os.path.join(FITS_PATH, '{}_{:05d}'.format(sample[1], sample[0]), 'results', 'image_{:06d}'.format(sample[2]), '000.pkl')
     pkl_np = pickle.load(open(pkl_path, 'rb'))
 
-    smpl_vertices, smpl_faces, smpl_mesh_calc = get_smpl(pkl_np, json_data)
+    smpl_vertices, smpl_faces, smpl_mesh, smpl_mesh_calc = get_smpl(pkl_np, json_data)
     pcd = get_depth(idx)
     rgbd_ptc = get_rgb(sample)
 
-    smpl_mesh = o3d.io.read_triangle_mesh(ply_path)
-    smpl_mesh.compute_vertex_normals()
+    # smpl_mesh = o3d.io.read_triangle_mesh(ply_path)
+    # smpl_mesh.compute_vertex_normals()
 
     vis = o3d.Visualizer()
     vis.create_window()
@@ -116,7 +122,7 @@ def view_fit(sample, idx):
     vis.add_geometry(smpl_mesh_calc)
     vis.add_geometry(rgbd_ptc)
     lbl = 'Participant {} sample {}'.format(sample[0], sample[2])
-    vis.add_geometry(text_3d(lbl, (0, -1.5, 2), direction=(0.01, 0, -1), degree=-90, font_size=200, density=0.2))
+    vis.add_geometry(text_3d(lbl, (-0.5, -1.5, 2), direction=(0.01, 0, -1), degree=-90, font_size=200, density=0.2))
 
     # vis.add_geometry(get_o3d_sphere(pos=smpl_vertices[336, :]))
 
