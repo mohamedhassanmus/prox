@@ -8,8 +8,8 @@ from prox.misc_utils import text_3d
 # Joint reference here https://github.com/gulvarol/smplpytorch
 # https://github.com/Healthcare-Robotics/bodies-at-rest/blob/master/lib_py/mesh_depth_lib_br.py#L70
 axang_limits_patrick = np.array(  # In degrees
-    [[-140, 17.7], [-60, 120], [-40, 60],  # Hip L 0
-     [-140, 17.7], [-120, 60], [-60, 40],  # Hip R
+    [[-140, 10], [-60, 120], [-40, 60],  # Hip L 0
+     [-140, 10], [-120, 60], [-60, 40],  # Hip R
      [-30., 110.], [-8., 8.], [-8., 8.],  # Lower back
      [-1.3, 139.9], [-0.6, 0.6], [-0.6, 0.6],  # Knee L
      [-1.3, 139.9], [-0.6, 0.6], [-0.6, 0.6],  # Knee R

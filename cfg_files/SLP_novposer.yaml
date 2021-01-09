@@ -31,7 +31,18 @@ part_segm_fn: "models/smplx_parts_segm.pkl"
 height_w: 50
 weight_w: 100
 
-#batch_size: 4
+batch_size: 4
+optim_type: 'adam'
+ftol: 1e-9
+gtol: 1e-9
+lr: 0.01
+
+
+# LBFGS with line search
+#optim_type: 'lbfgsls'
+#ftol: 1e-9
+#gtol: 1e-9
+#lr: 0.1
 
 ###################
 contact: False
@@ -73,31 +84,31 @@ rho_m2s: 10e-1   # Approximately controls the "range" of the loss function
 m2s_weights:
     - 1.0
     - 1.0
-    - 1e2
-    - 5e2
-    - 10e2
-    - 50e2
-    - 50e2
+    - 100
+    - 500
+    - 1000
+    - 5000
+    - 5000
 
 s2m: True
 rho_s2m: 4e-1
 s2m_weights:
     - 1.0
     - 1.0
-    - 1e2
-    - 5e2
-    - 5e2
-    - 5e2
-    - 5e2
+    - 100
+    - 500
+    - 500
+    - 500
+    - 500
 
 shape_weights:
-    - 1.0e2
-    - 5.0e1
-    - 1.0e1
-    - 0.5e1
-    - 0.5e1
-    - 0.5e1
-    - 0.5e1
+    - 100
+    - 50
+    - 10
+    - 5
+    - 5
+    - 5
+    - 5
 data_weights:   # Keypoints
     - 1
     - 1
@@ -152,11 +163,7 @@ df_cone_height: 0.0001
 ign_part_pairs: ["9,16", "9,17", "6,16", "6,17", "1,2", "12,22"]
 penalize_outside: True
 max_collisions: 128
-# LBFGS with line search
-optim_type: 'lbfgsls'
-ftol: 1e-9
-gtol: 1e-9
-lr: 0.1
+
 # Max number of optimization iterations
 maxiters: 30
 interactive: True

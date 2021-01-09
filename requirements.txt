@@ -1,6 +1,6 @@
 numpy>=1.16.2
-torch==1.0.1.post2
-#torch==1.1.0
+torch
+pytorch3d
 torchgeometry>=0.1.2
 PyYAML==5.1.1
 #configargparse
@@ -13,3 +13,4 @@ pyrender>=0.1.23
 trimesh>=2.37.6
 scipy
 open3d-python==0.7.0.0
+matplotlib

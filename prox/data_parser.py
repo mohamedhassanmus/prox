@@ -30,6 +30,8 @@ import cv2
 import numpy as np
 
 import torch
+import pytorch3d
+from pytorch3d.structures import Pointclouds
 from torch.utils.data import Dataset
 
 
@@ -232,6 +234,9 @@ class OpenPose(Dataset):
             return {}
         keypoints = np.stack(keyp_tuple.keypoints)
 
+        # Patrick
+        keypoints = np.squeeze(keypoints)
+
         depth_im = None
         if self.read_depth:
             depth_im = cv2.imread(os.path.join(self.depth_folder, img_fn + '.png'), flags=-1).astype(float)
@@ -269,6 +274,10 @@ class OpenPose(Dataset):
         # o3d.visualization.draw_geometries([pcd_mine, pcd_theirs])
         # print('Keypoints', keypoints)
 
+        split_path = img_path.split('/')
+        participant = int(''.join(c for c in split_path[2] if c.isdigit()))
+        sample = int(''.join(c for c in split_path[4] if c.isdigit()))
+
         output_dict = {'fn': img_fn,
                        'img_path': img_path,
                        'keypoints': keypoints,
@@ -276,20 +285,22 @@ class OpenPose(Dataset):
                        'init_trans': init_trans,
                        'depth_im': depth_im,
                        'mask': mask,
-                       'scan_dict':scan_dict}
+                       'scan_dict':scan_dict,
+                       'participant':participant,
+                       'sample':sample}
         if keyp_tuple.gender_gt is not None:
             if len(keyp_tuple.gender_gt) > 0:
-                output_dict['gender_gt'] = keyp_tuple.gender_gt
+                output_dict['gender_gt'] = keyp_tuple.gender_gt[0]
         if keyp_tuple.gender_pd is not None:
             if len(keyp_tuple.gender_pd) > 0:
-                output_dict['gender_pd'] = keyp_tuple.gender_pd
+                output_dict['gender_pd'] = keyp_tuple.gender_pd[0]
 
         if keyp_tuple.height is not None:
             if len(keyp_tuple.height) > 0:
-                output_dict['height'] = keyp_tuple.height
+                output_dict['height'] = keyp_tuple.height[0]
         if keyp_tuple.weight is not None:
             if len(keyp_tuple.weight) > 0:
-                output_dict['weight'] = keyp_tuple.weight
+                output_dict['weight'] = keyp_tuple.weight[0]
         return output_dict
 
     def __iter__(self):
@@ -306,3 +317,18 @@ class OpenPose(Dataset):
         self.cnt += 1
 
         return self.read_item(img_path)
+
+    @staticmethod
+    def collate_fn(batch):
+        out = dict()
+        batch_keys = batch[0].keys()
+        skip_keys = ['scan_dict']    # These will be manually collated
+
+        # For each not in skip_keys, use default torch collator
+        for key in [k for k in batch_keys if k not in skip_keys]:
+            out[key] = torch.utils.data._utils.collate.default_collate([d[key] for d in batch])
+
+        scan_all = [torch.Tensor(sample['scan_dict']['points']) for sample in batch]
+        out['scan'] = Pointclouds(points=scan_all)
+
+        return out

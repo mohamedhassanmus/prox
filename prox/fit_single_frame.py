@@ -287,7 +287,7 @@ def fit_single_frame(img,
     keypoint_data = torch.tensor(keypoints, dtype=dtype)
     gt_joints = keypoint_data[:, :, :2]
     if use_joints_conf:
-        joints_conf = keypoint_data[:, :, 2].reshape(1, -1)
+        joints_conf = keypoint_data[:, :, 2]
 
     # Transfer the data to the correct device
     gt_joints = gt_joints.to(device=device, dtype=dtype)
@@ -296,7 +296,7 @@ def fit_single_frame(img,
 
     scan_tensor = None
     if scan is not None:
-        scan_tensor = torch.tensor(scan.get('points'), device=device, dtype=dtype).unsqueeze(0)
+        scan_tensor = scan.to(device=device)
 
     # load pre-computed signed distance field
     sdf = None
@@ -515,12 +515,11 @@ def fit_single_frame(img,
                                **kwargs)
     loss = loss.to(device=device)
 
-    with fitting.FittingMonitor(
-            batch_size=batch_size, visualize=visualize, viz_mode=viz_mode, **kwargs) as monitor:
+    with fitting.FittingMonitor(batch_size=batch_size, visualize=visualize, viz_mode=viz_mode, **kwargs) as monitor:
 
         img = torch.tensor(img, dtype=dtype)
 
-        H, W, _ = img.shape
+        _, H, W, _ = img.shape
 
         # Reset the parameters to estimate the initial translation of the
         # body model
@@ -735,95 +734,95 @@ def fit_single_frame(img,
         with open(result_fn, 'wb') as result_file:
             pickle.dump(pkl_data, result_file, protocol=2)
 
-    if save_meshes or visualize:
-        # Patrick: This doesn't take the best result
-        if use_vposer:
-            pose_embedding = torch.Tensor(pkl_data['pose_embedding']).to(device=device)
-
-        body_pose = vposer.decode(pose_embedding, output_type='aa').view(1, -1) if use_vposer else None
-
-        model_type = kwargs.get('model_type', 'smpl')
-        append_wrists = model_type == 'smpl' and use_vposer
-        if append_wrists:
-                wrist_pose = torch.zeros([body_pose.shape[0], 6],
-                                         dtype=body_pose.dtype,
-                                         device=body_pose.device)
-                body_pose = torch.cat([body_pose, wrist_pose], dim=1)
-
-        model_output = body_model(return_verts=True, body_pose=body_pose)
-        vertices = model_output.vertices.detach().cpu().numpy().squeeze()
-
-        import trimesh
-
-        out_mesh = trimesh.Trimesh(vertices, body_model.faces, process=False)
-        out_mesh.export(mesh_fn)
-
-    if render_results:
-        import pyrender
-
-        # common
-        H, W = 1080, 1920
-        camera_center = np.array([951.30, 536.77])
-        camera_pose = np.eye(4)
-        camera_pose = np.array([1.0, -1.0, -1.0, 1.0]).reshape(-1, 1) * camera_pose
-        camera = pyrender.camera.IntrinsicsCamera(
-            fx=1060.53, fy=1060.38,
-            cx=camera_center[0], cy=camera_center[1])
-        light = pyrender.DirectionalLight(color=np.ones(3), intensity=2.0)
-
-        material = pyrender.MetallicRoughnessMaterial(
-            metallicFactor=0.0,
-            alphaMode='OPAQUE',
-            baseColorFactor=(1.0, 1.0, 0.9, 1.0))
-        body_mesh = pyrender.Mesh.from_trimesh(
-            out_mesh, material=material)
-
-        ## rendering body
-        img = img.detach().cpu().numpy()
-        H, W, _ = img.shape
-
-        scene = pyrender.Scene(bg_color=[0.0, 0.0, 0.0, 0.0],
-                               ambient_light=(0.3, 0.3, 0.3))
-        scene.add(camera, pose=camera_pose)
-        scene.add(light, pose=camera_pose)
-        # for node in light_nodes:
-        #     scene.add_node(node)
-
-        scene.add(body_mesh, 'mesh')
-
-        r = pyrender.OffscreenRenderer(viewport_width=W,
-                                       viewport_height=H,
-                                       point_size=1.0)
-        color, _ = r.render(scene, flags=pyrender.RenderFlags.RGBA)
-        color = color.astype(np.float32) / 255.0
-
-        valid_mask = (color[:, :, -1] > 0)[:, :, np.newaxis]
-        input_img = img
-        output_img = (color[:, :, :-1] * valid_mask +
-                      (1 - valid_mask) * input_img)
-
-        img = pil_img.fromarray((output_img * 255).astype(np.uint8))
-        img.save(out_img_fn)
-
-        ##redering body+scene
-        body_mesh = pyrender.Mesh.from_trimesh(
-            out_mesh, material=material)
-        static_scene = trimesh.load(osp.join(scene_dir, scene_name + '.ply'))
-        trans = np.linalg.inv(cam2world)
-        static_scene.apply_transform(trans)
-
-        static_scene_mesh = pyrender.Mesh.from_trimesh(static_scene)
-
-        scene = pyrender.Scene()
-        scene.add(camera, pose=camera_pose)
-        scene.add(light, pose=camera_pose)
-
-        scene.add(static_scene_mesh, 'mesh')
-        scene.add(body_mesh, 'mesh')
-
-        r = pyrender.OffscreenRenderer(viewport_width=W,
-                                       viewport_height=H)
-        color, _ = r.render(scene)
-        color = color.astype(np.float32) / 255.0
-        img = pil_img.fromarray((color * 255).astype(np.uint8))
-        img.save(body_scene_rendering_fn)
+    # if save_meshes or visualize:
+    #     # Patrick: This doesn't take the best result
+    #     if use_vposer:
+    #         pose_embedding = torch.Tensor(pkl_data['pose_embedding']).to(device=device)
+    #
+    #     body_pose = vposer.decode(pose_embedding, output_type='aa').view(1, -1) if use_vposer else None
+    #
+    #     model_type = kwargs.get('model_type', 'smpl')
+    #     append_wrists = model_type == 'smpl' and use_vposer
+    #     if append_wrists:
+    #             wrist_pose = torch.zeros([body_pose.shape[0], 6],
+    #                                      dtype=body_pose.dtype,
+    #                                      device=body_pose.device)
+    #             body_pose = torch.cat([body_pose, wrist_pose], dim=1)
+    #
+    #     model_output = body_model(return_verts=True, body_pose=body_pose)
+    #     vertices = model_output.vertices.detach().cpu().numpy().squeeze()
+    #
+    #     import trimesh
+    #
+    #     out_mesh = trimesh.Trimesh(vertices, body_model.faces, process=False)
+    #     out_mesh.export(mesh_fn)
+    #
+    # if render_results:
+    #     import pyrender
+    #
+    #     # common
+    #     H, W = 1080, 1920
+    #     camera_center = np.array([951.30, 536.77])
+    #     camera_pose = np.eye(4)
+    #     camera_pose = np.array([1.0, -1.0, -1.0, 1.0]).reshape(-1, 1) * camera_pose
+    #     camera = pyrender.camera.IntrinsicsCamera(
+    #         fx=1060.53, fy=1060.38,
+    #         cx=camera_center[0], cy=camera_center[1])
+    #     light = pyrender.DirectionalLight(color=np.ones(3), intensity=2.0)
+    #
+    #     material = pyrender.MetallicRoughnessMaterial(
+    #         metallicFactor=0.0,
+    #         alphaMode='OPAQUE',
+    #         baseColorFactor=(1.0, 1.0, 0.9, 1.0))
+    #     body_mesh = pyrender.Mesh.from_trimesh(
+    #         out_mesh, material=material)
+    #
+    #     ## rendering body
+    #     img = img.detach().cpu().numpy()
+    #     H, W, _ = img.shape
+    #
+    #     scene = pyrender.Scene(bg_color=[0.0, 0.0, 0.0, 0.0],
+    #                            ambient_light=(0.3, 0.3, 0.3))
+    #     scene.add(camera, pose=camera_pose)
+    #     scene.add(light, pose=camera_pose)
+    #     # for node in light_nodes:
+    #     #     scene.add_node(node)
+    #
+    #     scene.add(body_mesh, 'mesh')
+    #
+    #     r = pyrender.OffscreenRenderer(viewport_width=W,
+    #                                    viewport_height=H,
+    #                                    point_size=1.0)
+    #     color, _ = r.render(scene, flags=pyrender.RenderFlags.RGBA)
+    #     color = color.astype(np.float32) / 255.0
+    #
+    #     valid_mask = (color[:, :, -1] > 0)[:, :, np.newaxis]
+    #     input_img = img
+    #     output_img = (color[:, :, :-1] * valid_mask +
+    #                   (1 - valid_mask) * input_img)
+    #
+    #     img = pil_img.fromarray((output_img * 255).astype(np.uint8))
+    #     img.save(out_img_fn)
+    #
+    #     ##redering body+scene
+    #     body_mesh = pyrender.Mesh.from_trimesh(
+    #         out_mesh, material=material)
+    #     static_scene = trimesh.load(osp.join(scene_dir, scene_name + '.ply'))
+    #     trans = np.linalg.inv(cam2world)
+    #     static_scene.apply_transform(trans)
+    #
+    #     static_scene_mesh = pyrender.Mesh.from_trimesh(static_scene)
+    #
+    #     scene = pyrender.Scene()
+    #     scene.add(camera, pose=camera_pose)
+    #     scene.add(light, pose=camera_pose)
+    #
+    #     scene.add(static_scene_mesh, 'mesh')
+    #     scene.add(body_mesh, 'mesh')
+    #
+    #     r = pyrender.OffscreenRenderer(viewport_width=W,
+    #                                    viewport_height=H)
+    #     color, _ = r.render(scene)
+    #     color = color.astype(np.float32) / 255.0
+    #     img = pil_img.fromarray((color * 255).astype(np.uint8))
+    #     img.save(body_scene_rendering_fn)

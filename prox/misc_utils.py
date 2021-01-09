@@ -32,6 +32,19 @@ from PIL import Image, ImageFont, ImageDraw
 import open3d as o3d
 
 
+def batched_index_select(t, dim, inds):
+    """
+    Helper function to extract batch-varying indicies along array
+    :param t: array to select from
+    :param dim: dimension to select along
+    :param inds: batch-vary indicies
+    :return:
+    """
+    dummy = inds.unsqueeze(2).expand(inds.size(0), inds.size(1), t.size(2))
+    out = t.gather(dim, dummy) # b x e x f
+    return out
+
+
 def text_3d(text, pos, direction=None, degree=-90.0, density=10, font='/usr/share/fonts/truetype/freefont/FreeMono.ttf', font_size=10):
     """
     Generate a Open3D text point cloud used for visualization.
