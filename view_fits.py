@@ -13,6 +13,7 @@ import pickle
 import smplx
 import trimesh
 from prox.misc_utils import text_3d
+import matplotlib.cm as cm
 
 
 SLP_PATH = '/home/patrick/datasets/SLP/danaLab'
@@ -22,16 +23,18 @@ FITS_PATH = '/home/patrick/bed/prox/slp_fits'
 def get_smpl(pkl_data, json_data):
     gender = json_data['people'][0]['gender_gt']
     print('Target height {}, weight {}'.format(json_data['people'][0]['height'], json_data['people'][0]['weight']))
-    # pkl_data['transl'][0, 0] += 2
+
+    betas = torch.Tensor(pkl_data['betas']).unsqueeze(0)
+    pose = torch.Tensor(pkl_data['body_pose']).unsqueeze(0)
+    transl = torch.Tensor(pkl_data['transl']).unsqueeze(0)
+    global_orient = torch.Tensor(pkl_data['global_orient']).unsqueeze(0)
 
     model = smplx.create('models', model_type='smpl', gender=gender)
-    output = model(betas=torch.Tensor(pkl_data['betas']), body_pose=torch.Tensor(pkl_data['body_pose']), transl=torch.Tensor(pkl_data['transl']),
-                   global_orient=torch.Tensor(pkl_data['global_orient']), return_verts=True)
+    output = model(betas=betas, body_pose=pose, transl=transl, global_orient=global_orient, return_verts=True)
     smpl_vertices = output.vertices.detach().cpu().numpy().squeeze()
-    # smpl_joints = output.joints.detach().cpu().numpy().squeeze()
+    smpl_joints = output.joints.detach().cpu().numpy().squeeze()
 
-    output_unposed = model(betas=torch.Tensor(pkl_data['betas']), body_pose=torch.Tensor(pkl_data['body_pose'] * 0), transl=torch.Tensor(pkl_data['transl']),
-                           global_orient=torch.Tensor(pkl_data['global_orient']), return_verts=True)
+    output_unposed = model(betas=betas, body_pose=pose * 0, transl=transl, global_orient=global_orient, return_verts=True)
     smpl_vertices_unposed = output_unposed.vertices.detach().cpu().numpy().squeeze()
 
     for i, lbl in enumerate(['Wingspan', 'Height', 'Thickness']):
@@ -54,6 +57,23 @@ def get_smpl(pkl_data, json_data):
     smpl_o3d_2.vertices = o3d.Vector3dVector(smpl_vertices + np.array([1.5, 0, 0]))
     smpl_o3d_2.compute_vertex_normals()
     smpl_o3d_2.paint_uniform_color([0.7, 0.3, 0.3])
+
+    # Visualize SMPL joints - Patrick
+
+    # joint_markers = []
+    # for i in range(25):
+    #     color = cm.jet(i / 25.0)[:3]
+    #     joint_markers.append(get_o3d_sphere(color=color, pos=smpl_joints[i, :]))
+    #     joint_markers.append(get_o3d_sphere(color=color, radius=0.03))
+    #
+    # for i in range(25):
+    #     mean = np.asarray(self.joints_opt[i].vertices).mean(axis=0)
+    #     self.joints_opt[i].translate(joints[i, :] - mean)
+    #     self.vis_o3d.add_geometry(self.joints_opt[i])
+    #
+    #     j = joints_gt_3d[0, i, :].detach().cpu().numpy()
+    #     self.joints_gt[i].translate(j)
+    #     self.vis_o3d.add_geometry(self.joints_gt[i])
 
     return smpl_vertices, model.faces, smpl_o3d, smpl_o3d_2
 
@@ -97,17 +117,18 @@ def get_o3d_sphere(color=[0.3, 1.0, 0.3], pos=[0, 0, 0], radius=0.06):
 
 
 def view_fit(sample, idx):
-    ply_path = os.path.join(FITS_PATH, '{}_{:05d}'.format(sample[1], sample[0]), 'meshes', 'image_{:06d}'.format(sample[2]), '000.ply')
-    print('Reading', ply_path)
-    if not os.path.exists(ply_path):
+    # if sample[0] < 5 or sample[2] < 32:
+    #     return
+    pkl_path = os.path.join(FITS_PATH, '{}_{:05d}'.format(sample[1], sample[0]), 'results', 'image_{:06d}'.format(sample[2]), '000.pkl')
+    if not os.path.exists(pkl_path):
         return
+
+    print('Reading', pkl_path)
+    pkl_np = pickle.load(open(pkl_path, 'rb'))
 
     json_path = os.path.join(FITS_PATH, 'keypoints', '{}_{:05d}'.format(sample[1], sample[0]), 'image_{:06d}_keypoints.json'.format(sample[2]))
     with open(json_path) as keypoint_file:
         json_data = json.load(keypoint_file)
-
-    pkl_path = os.path.join(FITS_PATH, '{}_{:05d}'.format(sample[1], sample[0]), 'results', 'image_{:06d}'.format(sample[2]), '000.pkl')
-    pkl_np = pickle.load(open(pkl_path, 'rb'))
 
     smpl_vertices, smpl_faces, smpl_mesh, smpl_mesh_calc = get_smpl(pkl_np, json_data)
     pcd = get_depth(idx)

@@ -248,23 +248,30 @@ def main(**args):
         scan = data['scan']
         print('Processing: {}'.format(data['img_path']))
 
+        curr_result_folder = []
+        curr_mesh_folder = []
+        curr_result_fn = []
+        curr_mesh_fn = []
+        curr_body_scene_rendering_fn = []
+        curr_img_folder = []
+        out_img_fn = []
         for idx, cur_folder_name in enumerate(fn):
-            curr_result_folder = osp.join(result_folder, cur_folder_name)
-            if not osp.exists(curr_result_folder):
-                os.makedirs(curr_result_folder)
-            curr_mesh_folder = osp.join(mesh_folder, cur_folder_name)
-            if not osp.exists(curr_mesh_folder):
-                os.makedirs(curr_mesh_folder)
+            curr_result_folder.append(osp.join(result_folder, cur_folder_name))
+            if not osp.exists(curr_result_folder[-1]):
+                os.makedirs(curr_result_folder[-1])
+            curr_mesh_folder.append(osp.join(mesh_folder, cur_folder_name))
+            if not osp.exists(curr_mesh_folder[-1]):
+                os.makedirs(curr_mesh_folder[-1])
 
-            curr_result_fn = osp.join(curr_result_folder, '000.pkl')
-            curr_mesh_fn = osp.join(curr_mesh_folder, '000.ply')
-            curr_body_scene_rendering_fn = osp.join(body_scene_rendering_dir, cur_folder_name + '.png')
+            curr_result_fn.append(osp.join(curr_result_folder[-1], '000.pkl'))
+            curr_mesh_fn.append(osp.join(curr_mesh_folder[-1], '000.ply'))
+            curr_body_scene_rendering_fn.append(osp.join(body_scene_rendering_dir, cur_folder_name + '.png'))
 
-            curr_img_folder = osp.join(output_folder, 'images', cur_folder_name, '000')
-            if not osp.exists(curr_img_folder):
-                os.makedirs(curr_img_folder)
+            curr_img_folder.append(osp.join(output_folder, 'images', cur_folder_name, '000'))
+            if not osp.exists(curr_img_folder[-1]):
+                os.makedirs(curr_img_folder[-1])
 
-            out_img_fn = osp.join(curr_img_folder, 'output.png')
+            out_img_fn.append(osp.join(curr_img_folder[-1], 'output.png'))
 
         if gender_lbl_type != 'none':
             if gender_lbl_type == 'pd' and 'gender_pd' in data:

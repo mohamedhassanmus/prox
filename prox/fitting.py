@@ -772,7 +772,6 @@ class SMPLifyLoss(nn.Module):
         global_vars.cur_loss_dict = dict()
         for key, item in loss_dict.items():
             if torch.is_tensor(item):
-                print(key, item.shape)
                 global_vars.cur_loss_dict[key] = item.detach().cpu().numpy()
             else:
                 global_vars.cur_loss_dict[key] = item

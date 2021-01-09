@@ -718,20 +718,28 @@ def fit_single_frame(img,
             result['gt_joints'] = gt_joints
             result['max_joint'] = global_vars.cur_max_joint
 
-            results.append({'loss': final_loss_val,
-                            'result': result})
+            results.append(result)
 
-        pkl_data = {}
-        min_loss = np.inf
-        for result in results:
-            if 1 < result['loss'] < 1e8:
-                continue    # Avoid crazy loss values
+        for idx, res_folder in enumerate(result_fn):
+            pkl_data = {}
+            min_loss = np.inf
+            for result in results:
+                if result['loss_dict']['total'][idx] < min_loss:
+                    min_loss = result['loss_dict']['total'][idx]
 
-            if result['loss'] < min_loss:
-                pkl_data = result['result']
-                min_loss = result['loss']
-        with open(result_fn, 'wb') as result_file:
-            pickle.dump(pkl_data, result_file, protocol=2)
+                    for key, value in result.items():
+                        if isinstance(value, np.ndarray) and len(value.shape) > 1:
+                            pkl_data[key] = value[idx, :]
+                            print(value.shape, value[idx, :].shape)
+                        else:
+                            pkl_data[key] = value
+
+            with open(res_folder, 'wb') as result_file:
+                pickle.dump(pkl_data, result_file, protocol=2)
+
+            img_s = img[idx, :].detach().cpu().numpy()
+            img_s = pil_img.fromarray((img_s * 255).astype(np.uint8))
+            img_s.save(out_img_fn[idx])
 
     # if save_meshes or visualize:
     #     # Patrick: This doesn't take the best result
