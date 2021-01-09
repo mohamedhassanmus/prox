@@ -8,8 +8,8 @@ from prox.misc_utils import text_3d
 # Joint reference here https://github.com/gulvarol/smplpytorch
 # https://github.com/Healthcare-Robotics/bodies-at-rest/blob/master/lib_py/mesh_depth_lib_br.py#L70
 axang_limits_patrick = np.array(  # In degrees
-    [[-120, 17.7], [-60, 120], [-60, 60],  # Hip L 0
-     [-120, 17.7], [-120, 60], [-60, 60],  # Hip R
+    [[-140, 17.7], [-60, 120], [-40, 60],  # Hip L 0
+     [-140, 17.7], [-120, 60], [-60, 40],  # Hip R
      [-30., 110.], [-8., 8.], [-8., 8.],  # Lower back
      [-1.3, 139.9], [-0.6, 0.6], [-0.6, 0.6],  # Knee L
      [-1.3, 139.9], [-0.6, 0.6], [-0.6, 0.6],  # Knee R
@@ -102,12 +102,12 @@ if __name__ == "__main__":
     # view_multi([11, 14], [2, 2], [0, 0]) # Neck
     # view_multi([11, 14], [2, 2], [1, 1]) # Neck
 
-    view_multi([12, 15, 17], [0, 0, 1], [0, 0, 0.5]) # Shoulder
-    view_multi([12, 15, 17], [0, 0, 1], [1, 1, 0.5]) # Shoulder
-    view_multi([12, 15, 17], [1, 1, 1], [0, 0, 0.5]) # Shoulder
-    view_multi([12, 15, 17], [1, 1, 1], [1, 1, 0.5]) # Shoulder
-    view_multi([12, 15, 17], [2, 2, 1], [0, 0, 0.5]) # Shoulder
-    view_multi([12, 15, 17], [2, 2, 1], [1, 1, 0.5]) # Shoulder
+    # view_multi([12, 15, 17], [0, 0, 1], [0, 0, 0.5]) # Shoulder
+    # view_multi([12, 15, 17], [0, 0, 1], [1, 1, 0.5]) # Shoulder
+    # view_multi([12, 15, 17], [1, 1, 1], [0, 0, 0.5]) # Shoulder
+    # view_multi([12, 15, 17], [1, 1, 1], [1, 1, 0.5]) # Shoulder
+    # view_multi([12, 15, 17], [2, 2, 1], [0, 0, 0.5]) # Shoulder
+    # view_multi([12, 15, 17], [2, 2, 1], [1, 1, 0.5]) # Shoulder
 
 
     for i in range(0, 23):

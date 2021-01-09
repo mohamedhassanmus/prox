@@ -609,7 +609,7 @@ def fit_single_frame(img,
         while or_idx < len(orientations):
             global_vars.cur_orientation = or_idx
             orient = orientations[or_idx]
-            print('Trying orientation', or_idx, 'of', len(orientations), orient)
+            print('Trying orientation', or_idx, 'of', len(orientations))
             opt_start = time.time()
             or_idx += 1
 
@@ -717,23 +717,28 @@ def fit_single_frame(img,
             result['loss_dict'] = global_vars.cur_loss_dict
             result['betanet_weight'] = global_vars.cur_weight
             result['betanet_height'] = global_vars.cur_height
+            result['gt_joints'] = gt_joints
+            result['max_joint'] = global_vars.cur_max_joint
 
             results.append({'loss': final_loss_val,
                             'result': result})
 
-        with open(result_fn, 'wb') as result_file:
-            if len(results) > 1:
-                min_idx = (0 if results[0]['loss'] < results[1]['loss']
-                           else 1)
-            else:
-                min_idx = 0
-            pickle.dump(results[min_idx]['result'], result_file, protocol=2)
+        pkl_data = {}
+        min_loss = np.inf
+        for result in results:
+            if 1 < result['loss'] < 1e8:
+                continue    # Avoid crazy loss values
 
+            if result['loss'] < min_loss:
+                pkl_data = result['result']
+                min_loss = result['loss']
+        with open(result_fn, 'wb') as result_file:
+            pickle.dump(pkl_data, result_file, protocol=2)
 
     if save_meshes or visualize:
         # Patrick: This doesn't take the best result
         if use_vposer:
-            pose_embedding = torch.Tensor(results[min_idx]['result']['pose_embedding']).to(device=device)
+            pose_embedding = torch.Tensor(pkl_data['pose_embedding']).to(device=device)
 
         body_pose = vposer.decode(pose_embedding, output_type='aa').view(1, -1) if use_vposer else None
 
@@ -807,8 +812,7 @@ def fit_single_frame(img,
         trans = np.linalg.inv(cam2world)
         static_scene.apply_transform(trans)
 
-        static_scene_mesh = pyrender.Mesh.from_trimesh(
-            static_scene)
+        static_scene_mesh = pyrender.Mesh.from_trimesh(static_scene)
 
         scene = pyrender.Scene()
         scene.add(camera, pose=camera_pose)
