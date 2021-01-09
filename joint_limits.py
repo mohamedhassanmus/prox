@@ -8,8 +8,8 @@ from prox.misc_utils import text_3d
 # Joint reference here https://github.com/gulvarol/smplpytorch
 # https://github.com/Healthcare-Robotics/bodies-at-rest/blob/master/lib_py/mesh_depth_lib_br.py#L70
 axang_limits_patrick = np.array(  # In degrees
-    [[-115, 17.7], [-33.7, 32.6], [-30.5, 38.6],  # Hip L 0
-     [-115, 17.7], [-32.6, -33.7], [-38.6, 30.5],  # Hip R
+    [[-120, 17.7], [-60, 120], [-60, 60],  # Hip L 0
+     [-120, 17.7], [-120, 60], [-60, 60],  # Hip R
      [-30., 110.], [-8., 8.], [-8., 8.],  # Lower back
      [-1.3, 139.9], [-0.6, 0.6], [-0.6, 0.6],  # Knee L
      [-1.3, 139.9], [-0.6, 0.6], [-0.6, 0.6],  # Knee R
@@ -20,11 +20,11 @@ axang_limits_patrick = np.array(  # In degrees
      [-0.6, 0.6], [-0.6, 0.6], [-0.6, 0.6],  # Foot L?
      [-0.6, 0.6], [-0.6, 0.6], [-0.6, 0.6],  # Foot R? 10
      [-45., 60.], [-15., 15.], [-20., 20.],  # Lower neck
-     [-35., 42.1], [-50, 14.6], [-30., 60],  # Inner shoulder L
-     [-35., 42.1], [-14.6, 50], [-60, 30.],  # Inner shoulder R
+     [-40., 50], [-50, 20], [-40., 50],  # Inner shoulder L
+     [-40., 50], [-20, 50], [-50, 40.],  # Inner shoulder R
      [-30., 60.], [-5., 5.], [-5., 5.],  # Upper neck
-     [-70., 84.3], [-100, 45], [-75., 30],  # Outer shoulder L 15
-     [-70., 84.3], [-45, 100], [-30, 75.],  # Outer shoulder R
+     [-70., 70], [-90, 35], [-90., 50],  # Outer shoulder L 15
+     [-70., 70], [-35, 90], [-50, 90.],  # Outer shoulder R
      [-0.6, 0.6], [-160, 2.7], [-0.6, 0.6],  # Elbow L
      [-0.6, 0.6], [-2.7, 160], [-0.6, 0.6],  # Elbow R
      [-30., 30.], [-15., 15.], [-30., 30.],  # Wrist L

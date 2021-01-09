@@ -163,13 +163,13 @@ interactive: True
 visualize: False
 # Relative change in loss value
 body_pose_prior_weights:
-    - 40
-    - 10
-    - 10
-    - 10
-    - 10
-    - 10
-    - 10
+    - 100
+    - 100
+    - 100
+    - 100
+    - 100
+    - 200
+    - 200
 coll_loss_weights:
     - 0.0
     - 0.0
@@ -177,52 +177,4 @@ coll_loss_weights:
     - 0.0
     - 0.0002
     - 0.1
-    - 0.2
-expr_weights:
-    - 1.0e2
-    - 5.0e1
-    - 1.0e1
-    - 0.5e1
-    - 0.5e1
-    - 0.5e1
-    - 0.5e1
-hand_pose_prior_weights:
-    - 4.04e2
-    - 4.04e2
-    - 57.4
-    - 4.78
-    - 4.78
-    - 4.78
-    - 4.78
-jaw_pose_prior_weights:
-    # First phase
-    - 4.04e03,4.04e04,4.04e04
-    # Second phase
-    - 4.04e03,4.04e04,4.04e04
-    # Third phase
-    - 574,5740,5740
-    # Fourth phase
-    - 47.8,478,478
-    # Fifth phase
-    - 47.8,478,478
-    # Sixth phase
-    - 47.8,478,478
-    # Seventh phase
-    - 47.8,478,478
-hand_joints_weights:
-    - 0.0
-    - 0.0
-    - 0.0
-    - 0.1
-    - 2.0
-    - 2.0
-    - 2.0
-face_joints_weights:
-    - 0.0
-    - 0.0
-    - 0.0
-    - 0.0
-    - 2.0
-    - 2.0
-    - 2.0
-
+    - 1.0

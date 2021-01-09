@@ -57,7 +57,7 @@ class SMPLLimitPrior(nn.Module):
     def __init__(self, dtype=torch.float32, **kwargs):
         super(SMPLLimitPrior, self).__init__()
 
-        self.range_allow = 0.7
+        self.range_allow = 0.95
 
         axang_limits = torch.tensor(joint_limits.axang_limits_patrick / 180 * np.pi, dtype=dtype)
 
@@ -83,7 +83,8 @@ class SMPLLimitPrior(nn.Module):
             in the batch.
         '''
         z_scores = torch.abs((pose - self.axang_mean) / self.axang_var)
-        z_scores = torch.max(z_scores - self.range_allow, 0)
+        print('Max z score', z_scores.max())
+        z_scores = torch.max(z_scores - self.range_allow, torch.zeros_like(z_scores))
         return torch.sum(z_scores.pow(2))
 
 

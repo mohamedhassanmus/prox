@@ -49,6 +49,7 @@ import scipy.sparse as sparse
 from models.betanet import FC
 import global_vars
 import math
+import joint_limits
 
 
 def fit_single_frame(img,
@@ -255,25 +256,26 @@ def fit_single_frame(img,
         # body_mean_pose = body_pose_prior.get_mean().detach().cpu()
         # body_mean_pose = torch.zeros([batch_size, 69], dtype=dtype)
 
-        mean_body =  np.array([[-2.33263850e-01,  1.35460928e-01,  2.94471830e-01, -3.22930813e-01,
-                                -4.73931670e-01, -2.67531037e-01,  7.12558180e-02,  7.89440796e-03,
-                                8.67700949e-03,  1.05982251e-01,  2.79584467e-01, -7.04243258e-02,
-                                3.61106455e-01, -5.87305248e-01,  1.10897996e-01, -1.68918714e-01,
-                                -4.60174456e-02,  3.28684039e-02,  5.80525696e-01, -5.11317095e-03,
-                                -1.57546505e-01,  5.85777402e-01, -8.94948393e-02,  2.24680841e-01,
-                                1.55473784e-01,  5.38146123e-04,  4.30279821e-02, -4.68525589e-02,
-                                7.75185153e-02,  7.82282930e-03,  6.74356073e-02,  4.09710407e-02,
-                                -3.60425897e-02, -4.71813440e-01,  5.02379127e-02,  2.02309843e-02,
-                                5.29680364e-02,  1.68510173e-02,  2.25090146e-01, -4.52307612e-02,
-                                7.72185996e-02, -2.17333943e-01,  3.30020368e-01,  4.21866514e-02,
-                                7.15153441e-02,  3.05950731e-01, -3.63454908e-01, -1.28235269e+00,
-                                5.09610713e-01,  4.65482563e-01,  1.20263052e+00,  5.56594551e-01,
-                                -2.24000740e+00,  3.83565158e-01,  5.31355202e-01,  2.21637583e+00,
-                                -5.63146770e-01, -3.01193684e-01, -4.31942672e-01,  6.85038209e-01,
-                                3.61178756e-01,  2.76136428e-01, -2.64388829e-01,  0.00000000e+00,
-                                0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
-                                0.00000000e+00]])
-        body_mean_pose = torch.tensor(mean_body, dtype=dtype)
+        # mean_body =  np.array([[-2.33263850e-01,  1.35460928e-01,  2.94471830e-01, -3.22930813e-01,
+        #                         -4.73931670e-01, -2.67531037e-01,  7.12558180e-02,  7.89440796e-03,
+        #                         8.67700949e-03,  1.05982251e-01,  2.79584467e-01, -7.04243258e-02,
+        #                         3.61106455e-01, -5.87305248e-01,  1.10897996e-01, -1.68918714e-01,
+        #                         -4.60174456e-02,  3.28684039e-02,  5.80525696e-01, -5.11317095e-03,
+        #                         -1.57546505e-01,  5.85777402e-01, -8.94948393e-02,  2.24680841e-01,
+        #                         1.55473784e-01,  5.38146123e-04,  4.30279821e-02, -4.68525589e-02,
+        #                         7.75185153e-02,  7.82282930e-03,  6.74356073e-02,  4.09710407e-02,
+        #                         -3.60425897e-02, -4.71813440e-01,  5.02379127e-02,  2.02309843e-02,
+        #                         5.29680364e-02,  1.68510173e-02,  2.25090146e-01, -4.52307612e-02,
+        #                         7.72185996e-02, -2.17333943e-01,  3.30020368e-01,  4.21866514e-02,
+        #                         7.15153441e-02,  3.05950731e-01, -3.63454908e-01, -1.28235269e+00,
+        #                         5.09610713e-01,  4.65482563e-01,  1.20263052e+00,  5.56594551e-01,
+        #                         -2.24000740e+00,  3.83565158e-01,  5.31355202e-01,  2.21637583e+00,
+        #                         -5.63146770e-01, -3.01193684e-01, -4.31942672e-01,  6.85038209e-01,
+        #                         3.61178756e-01,  2.76136428e-01, -2.64388829e-01,  0.00000000e+00,
+        #                         0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+        #                         0.00000000e+00]])
+        mean_body = np.array(joint_limits.axang_limits_patrick / 180 * np.pi).mean(1)
+        body_mean_pose = torch.tensor(mean_body, dtype=dtype).unsqueeze(0)
 
 
     betanet = None
@@ -620,7 +622,7 @@ def fit_single_frame(img,
                     pose_embedding.fill_(0)
                     pose_embedding += torch.tensor(mean_body, dtype=dtype, device=device)
 
-            for opt_idx, curr_weights in enumerate(tqdm(opt_weights, desc='Stage')):
+            for opt_idx, curr_weights in enumerate(opt_weights):
                 global_vars.cur_opt_stage = opt_idx
 
                 if opt_idx not in trans_opt_stages:
@@ -671,7 +673,7 @@ def fit_single_frame(img,
                     pose_embedding=pose_embedding, vposer=vposer,
                     use_vposer=use_vposer)
 
-                print('Final loss val', final_loss_val)
+                # print('Final loss val', final_loss_val)
                 if final_loss_val is None or math.isnan(final_loss_val) or math.isnan(global_vars.cur_loss_dict['total']):
                     break
 

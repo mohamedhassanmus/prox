@@ -572,8 +572,9 @@ class SMPLifyLoss(nn.Module):
         # Calculate the prior over the joint rotations. This a heuristic used
         # to prevent extreme rotation of the elbows and knees
         body_pose = body_model_output.full_pose[:, 3:66]
-        angle_prior_loss = torch.sum(
-            self.angle_prior(body_pose)) * self.bending_prior_weight ** 2
+
+        # Patrick: turn off this loss
+        angle_prior_loss = 0 * torch.sum(self.angle_prior(body_pose)) * self.bending_prior_weight ** 2
 
         # Apply the prior on the pose space of the hand
         left_hand_prior_loss, right_hand_prior_loss = 0.0, 0.0
