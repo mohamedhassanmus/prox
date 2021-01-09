@@ -84,10 +84,10 @@ class SMPLLimitPrior(nn.Module):
             in the batch.
         '''
         z_scores = torch.abs((pose - self.axang_mean) / self.axang_var)
-        # print('Max z score', z_scores.max())
-        global_vars.cur_max_joint = z_scores.max().item()
+        max_z, _ = z_scores.max(dim=1)
+        global_vars.cur_max_joint = max_z.detach().cpu().numpy()
         z_scores = torch.max(z_scores - self.range_allow, torch.zeros_like(z_scores))
-        return torch.sum(z_scores.pow(2))
+        return torch.sum(z_scores.pow(2), dim=1)
 
 
 class SMPLifyAnglePrior(nn.Module):
@@ -134,7 +134,7 @@ class L2Prior(nn.Module):
         super(L2Prior, self).__init__()
 
     def forward(self, module_input, *args):
-        return torch.sum(module_input.pow(2))
+        return torch.sum(module_input.pow(2), dim=1)
 
 
 class MaxMixturePrior(nn.Module):

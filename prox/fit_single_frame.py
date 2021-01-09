@@ -543,14 +543,12 @@ def fit_single_frame(img,
         # If the distance between the 2D shoulders is smaller than a
         # predefined threshold then try 2 fits, the initial one and a 180
         # degree rotation
-        shoulder_dist = torch.dist(gt_joints[:, left_shoulder_idx],
-                                   gt_joints[:, right_shoulder_idx])
-        try_both_orient = shoulder_dist.item() < side_view_thsh
+        shoulder_dist = torch.norm(gt_joints[:, left_shoulder_idx, :] - gt_joints[:, right_shoulder_idx, :], dim=1)
+        try_both_orient = shoulder_dist.min() < side_view_thsh
 
-
-        camera_optimizer, camera_create_graph = optim_factory.create_optimizer(
-            camera_opt_params,
-            **kwargs)
+        kwargs['lr'] *= 10
+        camera_optimizer, camera_create_graph = optim_factory.create_optimizer(camera_opt_params, **kwargs)
+        kwargs['lr'] /= 10
 
         # The closure passed to the optimizer
         fit_camera = monitor.create_fitting_closure(
@@ -584,15 +582,16 @@ def fit_single_frame(img,
         # close the rotate the body by 180 degrees and also fit to that
         # orientation
         if try_both_orient:
-            body_orient = body_model.global_orient.detach().cpu().numpy()
-            flipped_orient = cv2.Rodrigues(body_orient)[0].dot(
-                cv2.Rodrigues(np.array([0., np.pi, 0]))[0])
-            flipped_orient = cv2.Rodrigues(flipped_orient)[0].ravel()
+            with torch.no_grad():
+                flipped_orient = torch.zeros_like(body_model.global_orient)
+                for i in range(batch_size):
+                    body_orient = body_model.global_orient[i, :].detach().cpu().numpy()
+                    local_flip = cv2.Rodrigues(body_orient)[0].dot(cv2.Rodrigues(np.array([0., np.pi, 0]))[0])
+                    local_flip = cv2.Rodrigues(local_flip)[0].ravel()
 
-            flipped_orient = torch.tensor(flipped_orient,
-                                          dtype=dtype,
-                                          device=device).unsqueeze(dim=0)
-            orientations = [body_orient, flipped_orient]
+                    flipped_orient[i, :] = torch.Tensor(local_flip).to(device)
+
+            orientations = [body_model.global_orient, flipped_orient]
         else:
             orientations = [body_model.global_orient.detach().cpu().numpy()]
 
@@ -673,8 +672,8 @@ def fit_single_frame(img,
                     use_vposer=use_vposer)
 
                 # print('Final loss val', final_loss_val)
-                if final_loss_val is None or math.isnan(final_loss_val) or math.isnan(global_vars.cur_loss_dict['total']):
-                    break
+                # if final_loss_val is None or math.isnan(final_loss_val) or math.isnan(global_vars.cur_loss_dict['total']):
+                #     break
 
                 if interactive:
                     if use_cuda and torch.cuda.is_available():
@@ -684,10 +683,10 @@ def fit_single_frame(img,
                         tqdm.write('Stage {:03d} done after {:.4f} seconds'.format(
                             opt_idx, elapsed))
 
-            if final_loss_val is None or math.isnan(final_loss_val) or math.isnan(global_vars.cur_loss_dict['total']):
-                print('Optimization FAILURE, retrying')
-                orientations.append(orientations[or_idx-1] * 0.9)
-                continue
+            # if final_loss_val is None or math.isnan(final_loss_val) or math.isnan(global_vars.cur_loss_dict['total']):
+            #     print('Optimization FAILURE, retrying')
+            #     orientations.append(orientations[or_idx-1] * 0.9)
+            #     continue
 
             if interactive:
                 if use_cuda and torch.cuda.is_available():

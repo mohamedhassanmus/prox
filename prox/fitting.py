@@ -224,10 +224,12 @@ class FittingMonitor(object):
                 loss_rel_change = utils.rel_change(prev_loss, loss.item())
 
                 if loss_rel_change <= self.ftol:
+                    print('Break ftol')
                     break
 
             if all([torch.abs(var.grad.view(-1).max()).item() < self.gtol
                     for var in params if var.grad is not None]):
+                print('Break gtol')
                 break
             prev_loss = loss.item()
 
@@ -546,20 +548,16 @@ class SMPLifyLoss(nn.Module):
         joint_err = gt_joints - projected_joints
         joint_err_sq = joint_err.pow(2)
         # joint_diff = self.robustifier(gt_joints - projected_joints)
-        joint_loss = (torch.sum(weights ** 2 * joint_err_sq) *
-                      self.data_weight ** 2)
+        joint_loss = (torch.sum(weights ** 2 * joint_err_sq, dim=[1, 2]) * self.data_weight ** 2)
 
         # Calculate the loss from the Pose prior
         if use_vposer:
             pprior_loss = (pose_embedding.pow(2).sum() *
                            self.body_pose_weight ** 2)
         else:
-            pprior_loss = torch.sum(self.body_pose_prior(
-                body_model_output.body_pose,
-                body_model_output.betas)) * self.body_pose_weight ** 2
+            pprior_loss = self.body_pose_prior(body_model_output.body_pose, body_model_output.betas) * self.body_pose_weight ** 2
 
-        shape_loss = torch.sum(self.shape_prior(
-            body_model_output.betas)) * self.shape_weight ** 2
+        shape_loss = self.shape_prior(body_model_output.betas) * self.shape_weight ** 2
 
 
         # Patrick - weight and height loss
@@ -573,7 +571,9 @@ class SMPLifyLoss(nn.Module):
         # print('Cur gender flag', tmp_gender)
         global_vars.cur_weight = batch_weight_est.detach().cpu().numpy()
         global_vars.cur_height = batch_height_est.detach().cpu().numpy()
-        physical_loss = F.mse_loss(self.weight, batch_weight_est) * self.weight_w + F.mse_loss(self.height, batch_height_est) * self.height_w
+        d_weight = self.weight - batch_weight_est.squeeze()
+        d_height = self.height - batch_height_est.squeeze()
+        physical_loss = d_weight.pow(2) * self.weight_w + d_height.pow(2) * self.height_w
 
 
         # Calculate the prior over the joint rotations. This a heuristic used
@@ -624,7 +624,7 @@ class SMPLifyLoss(nn.Module):
                 collision_idxs = self.tri_filtering_module(collision_idxs)
 
             if collision_idxs.ge(0).sum().item() > 0:
-                pen_loss = torch.sum(self.coll_loss_weight * self.pen_distance(triangles, collision_idxs))
+                pen_loss = self.coll_loss_weight * self.pen_distance(triangles, collision_idxs)
 
         s2m_dist = 0.0
         m2s_dist = 0.0
@@ -662,13 +662,13 @@ class SMPLifyLoss(nn.Module):
 
                 # s2m_dist, _, _, _ = distChamfer(scan_tensor, body_model_output.vertices[:, np.where(vis > 0)[0], :])
                 s2m_dist = self.s2m_robustifier(s2m_dist.dists.sqrt())
-                s2m_dist = self.s2m_weight * s2m_dist.sum()
+                s2m_dist = self.s2m_weight * s2m_dist.sum(dim=[1, 2])
             if self.m2s and self.m2s_weight > 0:
                 # _, m2s_dist, _, _ = distChamfer(scan_tensor, body_model_output.vertices[:, np.where(np.logical_and(vis > 0, self.body_mask))[0], :])
                 m2s_dist = knn_points(mesh_verts_towards_camera, scan_tensor.points_padded(), lengths2=num_scan_points, lengths1=num_mesh_verts_towards_camera, K=1)
 
                 m2s_dist = self.m2s_robustifier(m2s_dist.dists.sqrt())
-                m2s_dist = self.m2s_weight * m2s_dist.sum()
+                m2s_dist = self.m2s_weight * m2s_dist.sum(dim=[1, 2])
 
         # Transform vertices to world coordinates
         if self.R is not None and self.t is not None:
@@ -707,17 +707,13 @@ class SMPLifyLoss(nn.Module):
             sdf_normals = torch.zeros_like(vertices)
             sdf_normals[:, :, 2] = -1
 
-            body_sdf = body_sdf.view(-1)
-            sdf_normals = sdf_normals.view(-1, 3)
-
             # if there are no penetrating vertices then set sdf_penetration_loss = 0
             if body_sdf.lt(0).sum().item() < 1:
                 sdf_penetration_loss = torch.tensor(0.0, dtype=joint_loss.dtype, device=joint_loss.device)
             else:
-                contact_mask = body_sdf < 0
-                sel_sdf = body_sdf[contact_mask].abs()
-                sel_normal = sdf_normals[contact_mask, :]
-                sdf_penetration_loss = self.sdf_penetration_weight * (sel_sdf.unsqueeze(1) * sel_normal).pow(2).sum(dim=-1).sqrt().sum()
+                sel_sdf = torch.max(body_sdf, torch.zeros_like(body_sdf))
+                sdf_dot = sel_sdf.unsqueeze(2) * sdf_normals
+                sdf_penetration_loss = self.sdf_penetration_weight * sdf_dot.pow(2).sum(dim=2).sqrt().sum(dim=1)
 
 
         # Compute the contact loss
@@ -766,31 +762,34 @@ class SMPLifyLoss(nn.Module):
                       left_hand_prior_loss + right_hand_prior_loss + m2s_dist + s2m_dist
                       + sdf_penetration_loss + contact_loss + physical_loss)
 
-        global_vars.cur_loss_dict = {'total': total_loss.item(), 'joint': joint_loss.item(),
-                                     's2m': torch.tensor(s2m_dist).item(), 'm2s': torch.tensor(m2s_dist).item(),
-                                     'pprior': pprior_loss.item(), 'shape': shape_loss.item(),
-                                     'angle_prior': angle_prior_loss.item(), 'pen': torch.tensor(pen_loss).item(),
-                                     'sdf_penetration': torch.tensor(sdf_penetration_loss).item(), 'contact': torch.tensor(contact_loss).item(),
-                                     'physical': physical_loss.item()}
+        loss_dict = {'total': total_loss, 'joint': joint_loss,
+                                     's2m': s2m_dist, 'm2s': m2s_dist,
+                                     'pprior': pprior_loss, 'shape': shape_loss,
+                                     'angle_prior': angle_prior_loss, 'pen': pen_loss,
+                                     'sdf_penetration': sdf_penetration_loss, 'contact': contact_loss,
+                                     'physical': physical_loss}
 
-        if visualize: # and global_vars.cur_opt_step % 10 == 0:
-            # print('total:{:.2f}, joint_loss:{:0.2f},  s2m:{:0.2f}, m2s:{:0.2f}, penetration:{:0.2f}, contact:{:0.2f}'.
-            #       format(total_loss.item(), joint_loss.item() ,torch.tensor(s2m_dist).item(),
-            #              torch.tensor(m2s_dist).item() ,torch.tensor(sdf_penetration_loss).item(), torch.tensor(contact_loss).item()))
-            # print('pprior:{:.2f}, shape:{:.2f}, angle_pri:{:.2f}, pen:{:.2f}, jaw:{:.2f}, expres:{:.2f}'.format(
-            #     pprior_loss.item(), shape_loss.item(), angle_prior_loss.item(),
-            #     torch.tensor(pen_loss).item(), torch.tensor(jaw_prior_loss).item(), torch.tensor(expression_loss).item()))
-            for key in global_vars.cur_loss_dict.keys():
-                if key == 'tot' or global_vars.cur_loss_dict[key] == 0:
-                    continue
-                print('{}:{:.0f}'.format(key, global_vars.cur_loss_dict[key]), end=' ')
-            print('max joint:{:.2f}'.format(global_vars.cur_max_joint))
+        global_vars.cur_loss_dict = dict()
+        for key, item in loss_dict.items():
+            if torch.is_tensor(item):
+                print(key, item.shape)
+                global_vars.cur_loss_dict[key] = item.detach().cpu().numpy()
+            else:
+                global_vars.cur_loss_dict[key] = item
 
-            # print('tot:{:.2f}, j_loss:{:0.2f}, s2m:{:0.2f}, m2s:{:0.2f}, pprior:{:.2f}, shape:{:.2f}, ang_pri:{:.2f}, pen:{:.2f}, phys{:.2f}, sdf{:.2f}'.
-            #       format(total_loss.item(), joint_loss.item(), torch.tensor(s2m_dist).item(),
-            #              torch.tensor(m2s_dist).item(), pprior_loss.item(), shape_loss.item(),
-            #              angle_prior_loss.item(), torch.tensor(pen_loss).item(), physical_loss.item(), torch.tensor(sdf_penetration_loss).item()))
-        return total_loss
+        if visualize:
+            np.set_printoptions(precision=1)
+            for key, value in global_vars.cur_loss_dict.items():
+                if isinstance(value, np.ndarray):
+                    if value.sum() == 0:
+                        continue
+                else:
+                    if value == 0:
+                        continue
+                print('{}:{}'.format(key, global_vars.cur_loss_dict[key]), end=' ')
+            print('max_joint:{}'.format(global_vars.cur_max_joint))
+
+        return total_loss.sum()
 
 
 class SMPLifyCameraInitLoss(nn.Module):
