@@ -30,6 +30,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import joint_limits
+import global_vars
 
 DEFAULT_DTYPE = torch.float32
 
@@ -83,7 +84,8 @@ class SMPLLimitPrior(nn.Module):
             in the batch.
         '''
         z_scores = torch.abs((pose - self.axang_mean) / self.axang_var)
-        print('Max z score', z_scores.max())
+        # print('Max z score', z_scores.max())
+        global_vars.cur_max_joint = z_scores.max().item()
         z_scores = torch.max(z_scores - self.range_allow, torch.zeros_like(z_scores))
         return torch.sum(z_scores.pow(2))
 

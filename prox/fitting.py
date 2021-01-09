@@ -282,7 +282,7 @@ class FittingMonitor(object):
                                           body_pose=body_pose)
                 vertices = model_output.vertices[0, :, :].detach().cpu().numpy()
                 joints = model_output.joints[0, :, :].detach().cpu().numpy()
-                gt_joints_b0 = gt_joints[0, :, :].unsqueeze(0)
+                # gt_joints_b0 = gt_joints[0, :, :].unsqueeze(0)
 
                 if self.steps == 0 and self.viz_mode == 'o3d':
 
@@ -538,8 +538,9 @@ class SMPLifyLoss(nn.Module):
         # Calculate the distance of the projected joints from
         # the ground truth 2D detections
         joint_err = gt_joints - projected_joints
-        joint_diff = self.robustifier(gt_joints - projected_joints)
-        joint_loss = (torch.sum(weights ** 2 * joint_diff) *
+        joint_err_sq = joint_err.pow(2)
+        # joint_diff = self.robustifier(gt_joints - projected_joints)
+        joint_loss = (torch.sum(weights ** 2 * joint_err_sq) *
                       self.data_weight ** 2)
 
         # Calculate the loss from the Pose prior
@@ -758,12 +759,11 @@ class SMPLifyLoss(nn.Module):
             # print('pprior:{:.2f}, shape:{:.2f}, angle_pri:{:.2f}, pen:{:.2f}, jaw:{:.2f}, expres:{:.2f}'.format(
             #     pprior_loss.item(), shape_loss.item(), angle_prior_loss.item(),
             #     torch.tensor(pen_loss).item(), torch.tensor(jaw_prior_loss).item(), torch.tensor(expression_loss).item()))
-            print('tot:{:.0f}'.format(global_vars.cur_loss_dict['total']), end=' ')
             for key in global_vars.cur_loss_dict.keys():
                 if key == 'tot' or global_vars.cur_loss_dict[key] == 0:
                     continue
                 print('{}:{:.0f}'.format(key, global_vars.cur_loss_dict[key]), end=' ')
-            print()
+            print('max joint:{:.2f}'.format(global_vars.cur_max_joint))
 
             # print('tot:{:.2f}, j_loss:{:0.2f}, s2m:{:0.2f}, m2s:{:0.2f}, pprior:{:.2f}, shape:{:.2f}, ang_pri:{:.2f}, pen:{:.2f}, phys{:.2f}, sdf{:.2f}'.
             #       format(total_loss.item(), joint_loss.item(), torch.tensor(s2m_dist).item(),
