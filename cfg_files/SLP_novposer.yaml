@@ -31,7 +31,7 @@ part_segm_fn: "models/smplx_parts_segm.pkl"
 height_w: 50
 weight_w: 100
 
-batch_size: 4
+batch_size: 24 # We can do all 45 poses at once?
 optim_type: 'adam'
 #ftol: 1e-12
 ftol: 0
@@ -183,6 +183,6 @@ coll_loss_weights:
     - 0.0
     - 0.0
     - 0.0
-    - 0.0002
+    - 0.0
     - 0.1
     - 1.0

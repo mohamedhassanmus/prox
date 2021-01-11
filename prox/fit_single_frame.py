@@ -145,6 +145,9 @@ def fit_single_frame(img,
 
     if kwargs['optim_type'] == 'lbfgsls':
         assert batch_size == 1, 'PyTorch L-BFGS only supports batch_size == 1'
+
+    batch_size = keypoints.shape[0]
+
     body_model.reset_params()
     body_model.transl.requires_grad = True
 
@@ -537,6 +540,9 @@ def fit_single_frame(img,
             camera_opt_params = [camera.translation, body_model.global_orient]
 
         elif camera_mode == 'fixed':
+            # body_model.reset_params()
+            # body_model.transl[:] = torch.tensor(init_t)
+            # body_model.body_pose[:] = torch.tensor(body_mean_pose)
             body_model.reset_params(body_pose=body_mean_pose, transl=init_t)
             camera_opt_params = [body_model.transl, body_model.global_orient]
 
@@ -700,6 +706,11 @@ def fit_single_frame(img,
             # orientations, if they exist
             result = {'camera_' + str(key): val.detach().cpu().numpy()
                       for key, val in camera.named_parameters()}
+
+            result['camera_focal_length_x'] = camera.focal_length_x.detach().cpu().numpy()
+            result['camera_focal_length_y'] = camera.focal_length_y.detach().cpu().numpy()
+            result['camera_center'] = camera.center.detach().cpu().numpy()
+
             result.update({key: val.detach().cpu().numpy()
                            for key, val in body_model.named_parameters()})
             if use_vposer:
@@ -715,22 +726,25 @@ def fit_single_frame(img,
             result['loss_dict'] = global_vars.cur_loss_dict
             result['betanet_weight'] = global_vars.cur_weight
             result['betanet_height'] = global_vars.cur_height
-            result['gt_joints'] = gt_joints
+            result['gt_joints'] = gt_joints.detach().cpu().numpy()
             result['max_joint'] = global_vars.cur_max_joint
 
             results.append(result)
 
-        for idx, res_folder in enumerate(result_fn):
+        for idx, res_folder in enumerate(result_fn):    # Iterate over batch
             pkl_data = {}
             min_loss = np.inf
-            for result in results:
+            pkl_data['all_results'] = []
+            for result in results:  # Iterate over orientations
                 if result['loss_dict']['total'][idx] < min_loss:
                     min_loss = result['loss_dict']['total'][idx]
+                    result['batch_idx'] = idx
 
                     for key, value in result.items():
-                        if isinstance(value, np.ndarray) and len(value.shape) > 1:
-                            pkl_data[key] = value[idx, :]
-                            print(value.shape, value[idx, :].shape)
+                        if torch.is_tensor(value):
+                            value = value.detach().cpu().numpy()
+                        if isinstance(value, np.ndarray) and value.shape[0] == len(result_fn):
+                            pkl_data[key] = value[idx, ...]
                         else:
                             pkl_data[key] = value
 

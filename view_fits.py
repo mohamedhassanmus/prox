@@ -14,6 +14,7 @@ import smplx
 import trimesh
 from prox.misc_utils import text_3d
 import matplotlib.cm as cm
+from prox.camera import PerspectiveCamera
 
 
 SLP_PATH = '/home/patrick/datasets/SLP/danaLab'
@@ -60,22 +61,24 @@ def get_smpl(pkl_data, json_data):
 
     # Visualize SMPL joints - Patrick
 
-    # joint_markers = []
-    # for i in range(25):
-    #     color = cm.jet(i / 25.0)[:3]
-    #     joint_markers.append(get_o3d_sphere(color=color, pos=smpl_joints[i, :]))
-    #     joint_markers.append(get_o3d_sphere(color=color, radius=0.03))
-    #
-    # for i in range(25):
-    #     mean = np.asarray(self.joints_opt[i].vertices).mean(axis=0)
-    #     self.joints_opt[i].translate(joints[i, :] - mean)
-    #     self.vis_o3d.add_geometry(self.joints_opt[i])
-    #
-    #     j = joints_gt_3d[0, i, :].detach().cpu().numpy()
-    #     self.joints_gt[i].translate(j)
-    #     self.vis_o3d.add_geometry(self.joints_gt[i])
+    camera = PerspectiveCamera(rotation=torch.tensor(pkl_data['camera_rotation']).unsqueeze(0),
+                               translation=torch.tensor(pkl_data['camera_translation']).unsqueeze(0),
+                               center=torch.tensor(pkl_data['camera_center']),
+                               focal_length_x=torch.tensor(pkl_data['camera_focal_length_x']),
+                               focal_length_y=torch.tensor(pkl_data['camera_focal_length_y']))
 
-    return smpl_vertices, model.faces, smpl_o3d, smpl_o3d_2
+    gt_pos_3d = camera.inverse_camera_tform(torch.tensor(pkl_data['gt_joints']).unsqueeze(0), 1.8).detach().squeeze(0).cpu().numpy()
+
+    all_markers = []
+    for i in range(25):
+        color = cm.jet(i / 25.0)[:3]
+        # smpl_marker = get_o3d_sphere(color=color, pos=smpl_joints[i, :])
+        # all_markers.append(smpl_marker)
+
+        pred_marker = get_o3d_sphere(color=color, pos=gt_pos_3d[i, :], radius=0.03)
+        all_markers.append(pred_marker)
+
+    return smpl_vertices, model.faces, smpl_o3d, smpl_o3d_2, all_markers
 
 
 def get_depth(idx):
@@ -130,7 +133,7 @@ def view_fit(sample, idx):
     with open(json_path) as keypoint_file:
         json_data = json.load(keypoint_file)
 
-    smpl_vertices, smpl_faces, smpl_mesh, smpl_mesh_calc = get_smpl(pkl_np, json_data)
+    smpl_vertices, smpl_faces, smpl_mesh, smpl_mesh_calc, joint_markers = get_smpl(pkl_np, json_data)
     pcd = get_depth(idx)
     rgbd_ptc = get_rgb(sample)
 
@@ -146,7 +149,8 @@ def view_fit(sample, idx):
     lbl = 'Participant {} sample {}'.format(sample[0], sample[2])
     vis.add_geometry(text_3d(lbl, (-0.5, -1.5, 2), direction=(0.01, 0, -1), degree=-90, font_size=200, density=0.2))
 
-    # vis.add_geometry(get_o3d_sphere(pos=smpl_vertices[336, :]))
+    for j in joint_markers:
+        vis.add_geometry(j)
 
     ctr = vis.get_view_control()
     parameters = o3d.io.read_pinhole_camera_parameters("view_fits_camera.json")

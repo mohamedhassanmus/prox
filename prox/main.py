@@ -128,40 +128,6 @@ def main(**args):
 
     joint_mapper = JointMapper(dataset_obj.get_model2data())
 
-    model_params = dict(model_path=args.get('model_folder'),
-                        joint_mapper=joint_mapper,
-                        create_global_orient=True,
-                        create_body_pose=not args.get('use_vposer'),
-                        create_betas=True,
-                        create_left_hand_pose=True,
-                        create_right_hand_pose=True,
-                        create_expression=True,
-                        create_jaw_pose=True,
-                        create_leye_pose=True,
-                        create_reye_pose=True,
-                        create_transl=True,
-                        dtype=dtype,
-                        **args)
-
-    male_model = smplx.create(gender='male', **model_params)
-    # SMPL-H has no gender-neutral model
-    if args.get('model_type') != 'smplh':
-        neutral_model = smplx.create(gender='neutral', **model_params)
-    female_model = smplx.create(gender='female', **model_params)
-
-    # Create the camera object
-    camera_center = None \
-        if args.get('camera_center_x') is None or args.get('camera_center_y') is None \
-        else torch.tensor([args.get('camera_center_x'), args.get('camera_center_y')], dtype=dtype).view(-1, 2)
-    camera = create_camera(focal_length_x=args.get('focal_length_x'),
-                           focal_length_y=args.get('focal_length_y'),
-                           center= camera_center,
-                           batch_size=args.get('batch_size'),
-                           dtype=dtype)
-
-    if hasattr(camera, 'rotation'):
-        camera.rotation.requires_grad = False
-
     use_hands = args.get('use_hands', True)
     use_face = args.get('use_face', True)
     use_height_weight = args.get('use_height_weight', False)
@@ -210,11 +176,6 @@ def main(**args):
     if use_cuda and torch.cuda.is_available():
         device = torch.device('cuda')
 
-        camera = camera.to(device=device)
-        female_model = female_model.to(device=device)
-        male_model = male_model.to(device=device)
-        if args.get('model_type') != 'smplh':
-            neutral_model = neutral_model.to(device=device)
         body_pose_prior = body_pose_prior.to(device=device)
         angle_prior = angle_prior.to(device=device)
         shape_prior = shape_prior.to(device=device)
@@ -233,6 +194,50 @@ def main(**args):
     joint_weights.unsqueeze_(dim=0)
 
     for idx, data in enumerate(tqdm(dataloader)):
+        batch_size = data['keypoints'].shape[0]
+        args['batch_size'] = batch_size
+        # First, make the SMPL and camera model, since they're batch size dependent (stupid, I know)
+        model_params = dict(model_path=args.get('model_folder'),
+                            joint_mapper=joint_mapper,
+                            create_global_orient=True,
+                            create_body_pose=not args.get('use_vposer'),
+                            create_betas=True,
+                            create_left_hand_pose=True,
+                            create_right_hand_pose=True,
+                            create_expression=True,
+                            create_jaw_pose=True,
+                            create_leye_pose=True,
+                            create_reye_pose=True,
+                            create_transl=True,
+                            dtype=dtype,
+                            **args)
+
+        male_model = smplx.create(gender='male', **model_params)
+        # SMPL-H has no gender-neutral model
+        if args.get('model_type') != 'smplh':
+            neutral_model = smplx.create(gender='neutral', **model_params)
+        female_model = smplx.create(gender='female', **model_params)
+
+        # Create the camera object
+        camera_center = None \
+            if args.get('camera_center_x') is None or args.get('camera_center_y') is None \
+            else torch.tensor([args.get('camera_center_x'), args.get('camera_center_y')], dtype=dtype).view(-1, 2)
+        camera = create_camera(focal_length_x=args.get('focal_length_x'),
+                               focal_length_y=args.get('focal_length_y'),
+                               center=camera_center,
+                               batch_size=args.get('batch_size'),
+                               dtype=dtype)
+
+        if hasattr(camera, 'rotation'):
+            camera.rotation.requires_grad = False
+
+        camera = camera.to(device=device)
+        female_model = female_model.to(device=device)
+        male_model = male_model.to(device=device)
+        if args.get('model_type') != 'smplh':
+            neutral_model = neutral_model.to(device=device)
+
+
         # if idx < args['skip']:     # For visualization, skip to the interesting ones
         #     continue
 
