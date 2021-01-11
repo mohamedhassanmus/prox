@@ -1,14 +1,7 @@
-# import numpy as np
 import torch
 import torch.nn as nn
-# import torch.nn.functional as F
-# from torch.autograd import Variable
-# import scipy.stats as ss
-# import torchvision
-# import time
 
 import sys
-# sys.path.insert(0, '../lib_py')
 
 
 class FC(nn.Module):
@@ -21,13 +14,19 @@ class FC(nn.Module):
 
         self.count = 0
 
+        # self.FC_pack_64 = nn.Sequential(
+        #     nn.Linear(12, 128),
+        #     nn.ReLU(inplace=True),
+        #     nn.Linear(128, 128),
+        #     nn.ReLU(inplace=True),
+        #     nn.Linear(128, 2),
+        #     nn.ReLU(inplace=True),
+        # )
+
         self.FC_pack_64 = nn.Sequential(
             nn.Linear(12, 128),
             nn.ReLU(inplace=True),
-            nn.Linear(128, 128),
-            nn.ReLU(inplace=True),
             nn.Linear(128, 2),
-            nn.ReLU(inplace=True),
         )
 
         if torch.cuda.is_available():
@@ -105,7 +104,7 @@ if __name__ == "__main__":
         fout.close()
 
     # Save
-    # model = torch.load('models/betanet_chkpt.pt', map_location=torch.device('cpu'))
+    # model = torch.load('models/betanet_twolayer.pt', map_location=torch.device('cpu'))
     # save_model_txt(model, 'models/betanet_text.txt')
 
     # Load
