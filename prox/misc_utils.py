@@ -32,6 +32,24 @@ from PIL import Image, ImageFont, ImageDraw
 import open3d as o3d
 
 
+def get_data_from_batched_dict(in_dict, batch_idx, batch_n):
+    out_dict = dict()
+    out_dict['batch_idx'] = batch_idx
+
+    for key, value in in_dict.items():
+        if torch.is_tensor(value):
+            value = value.detach().cpu().numpy()
+
+        if isinstance(value, np.ndarray) and len(value.shape) >= 1 and value.shape[0] == batch_n:
+            out_dict[key] = value[batch_idx, ...]
+        elif isinstance(value, dict):
+            out_dict[key] = get_data_from_batched_dict(value, batch_idx, batch_n)
+        else:
+            out_dict[key] = value
+
+    return out_dict
+
+
 def batched_index_select(t, dim, inds):
     """
     Helper function to extract batch-varying indicies along array

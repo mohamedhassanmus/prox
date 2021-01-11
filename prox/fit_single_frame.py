@@ -50,6 +50,7 @@ from models.betanet import FC
 import global_vars
 import math
 import joint_limits
+import misc_utils
 
 
 def fit_single_frame(img,
@@ -734,19 +735,17 @@ def fit_single_frame(img,
         for idx, res_folder in enumerate(result_fn):    # Iterate over batch
             pkl_data = {}
             min_loss = np.inf
-            pkl_data['all_results'] = []
+            all_results = []
             for result in results:  # Iterate over orientations
-                if result['loss_dict']['total'][idx] < min_loss:
-                    min_loss = result['loss_dict']['total'][idx]
-                    result['batch_idx'] = idx
+                sel_res = misc_utils.get_data_from_batched_dict(result, idx, len(result_fn))
+                all_results.append(sel_res)
 
-                    for key, value in result.items():
-                        if torch.is_tensor(value):
-                            value = value.detach().cpu().numpy()
-                        if isinstance(value, np.ndarray) and value.shape[0] == len(result_fn):
-                            pkl_data[key] = value[idx, ...]
-                        else:
-                            pkl_data[key] = value
+                cost = sel_res['loss_dict']['total'] + sel_res['loss_dict']['pprior'] * 60
+                if cost < min_loss:
+                    min_loss = cost
+                    pkl_data.update(sel_res)
+
+            pkl_data['all_results'] = all_results
 
             with open(res_folder, 'wb') as result_file:
                 pickle.dump(pkl_data, result_file, protocol=2)

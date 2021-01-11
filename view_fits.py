@@ -15,11 +15,43 @@ import trimesh
 from prox.misc_utils import text_3d
 import matplotlib.cm as cm
 from prox.camera import PerspectiveCamera
+import pprint
 
 
 SLP_PATH = '/home/patrick/datasets/SLP/danaLab'
 FITS_PATH = '/home/patrick/bed/prox/slp_fits'
 
+
+def get_all_smpl(pkl_data, json_data):
+    gender = json_data['people'][0]['gender_gt']
+    all_meshes = []
+
+    trans = np.array([4, 0, 0])
+
+    for i, result in enumerate(pkl_data['all_results']):
+        t = trans + [0, i * 3, 0]
+        betas = torch.Tensor(result['betas']).unsqueeze(0)
+        pose = torch.Tensor(result['body_pose']).unsqueeze(0)
+        transl = torch.Tensor(result['transl']).unsqueeze(0)
+        global_orient = torch.Tensor(result['global_orient']).unsqueeze(0)
+
+        model = smplx.create('models', model_type='smpl', gender=gender)
+        output = model(betas=betas, body_pose=pose, transl=transl, global_orient=global_orient, return_verts=True)
+        smpl_vertices = output.vertices.detach().cpu().numpy().squeeze()
+
+        smpl_o3d = o3d.TriangleMesh()
+        smpl_o3d.triangles = o3d.Vector3iVector(model.faces)
+        smpl_o3d.vertices = o3d.Vector3dVector(smpl_vertices)
+        smpl_o3d.compute_vertex_normals()
+        smpl_o3d.translate(t)
+
+        for idx, key in enumerate(result['loss_dict'].keys()):
+            lbl = '{} {:.2f}'.format(key, float(result['loss_dict'][key]))
+            all_meshes.append(text_3d(lbl, t + [1, idx * 0.2 - 1, 2], direction=(0.01, 0, -1), degree=-90, font_size=150, density=0.2))
+
+        all_meshes.append(smpl_o3d)
+
+    return all_meshes
 
 def get_smpl(pkl_data, json_data):
     gender = json_data['people'][0]['gender_gt']
@@ -137,9 +169,6 @@ def view_fit(sample, idx):
     pcd = get_depth(idx)
     rgbd_ptc = get_rgb(sample)
 
-    # smpl_mesh = o3d.io.read_triangle_mesh(ply_path)
-    # smpl_mesh.compute_vertex_normals()
-
     vis = o3d.Visualizer()
     vis.create_window()
     vis.add_geometry(pcd)
@@ -151,6 +180,10 @@ def view_fit(sample, idx):
 
     for j in joint_markers:
         vis.add_geometry(j)
+
+    all_smpl = get_all_smpl(pkl_np, json_data)
+    for o in all_smpl:
+        vis.add_geometry(o)
 
     ctr = vis.get_view_control()
     parameters = o3d.io.read_pinhole_camera_parameters("view_fits_camera.json")

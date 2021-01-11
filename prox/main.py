@@ -30,6 +30,7 @@ import open3d as o3d
 import torch
 
 import smplx
+from glob import glob
 
 
 from misc_utils import JointMapper
@@ -334,4 +335,14 @@ def main(**args):
 
 if __name__ == "__main__":
     args = parse_config()
-    main(**args)
+
+    if args['recording_dir'] == 'none':
+        all_recordings = glob('slp_tform/recordings/*/')
+        all_recordings.sort()
+
+        for recording in all_recordings:
+            args['recording_dir'] = recording[:-1]
+            print(args['recording_dir'])
+            main(**args)
+    else:
+        main(**args)

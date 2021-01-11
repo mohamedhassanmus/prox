@@ -36,7 +36,7 @@ def parse_config(argv=None):
                                       prog='SMPLifyX')
 
     parser.add_argument('--recording_dir',
-                        default=os.getcwd(),
+                        default='none',
                         help='The directory that contains the data.')
     parser.add_argument('--max_persons', type=int, default=3,
                         help='The maximum number of persons to process')
